@@ -1,0 +1,9 @@
+work/
+bin/
+doc/
+out/
+*.lst
+*.swp
+*.ps
+*.pdf
+*.gtkw
