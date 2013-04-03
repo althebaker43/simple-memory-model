@@ -1,6 +1,6 @@
 work/
 bin/
-doc/
+docs/
 out/
 *.lst
 *.swp
