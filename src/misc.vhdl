@@ -9,10 +9,17 @@ use IEEE.std_logic_1164.all;
 
 package datapath_types is
 
-    constant addr_size : positive := 32;
-    constant word_size : positive := 32;
+    constant CLK_PERIOD : time := 10 ns;
 
-    subtype addr is unsigned( ( addr_size - 1 ) to 0 );
-    subtype word is signed( ( word_size - 1 ) to 0 );
+    constant ADDR_SIZE : positive := 32;
+    constant WORD_SIZE : positive := 32;
+
+    subtype addr is unsigned( ( ADDR_SIZE - 1 ) downto 0 );
+    subtype word is signed( ( WORD_SIZE - 1 ) downto 0 );
+
+    constant LW_TEMPLATE  : word := X"86_00_00_00";
+    constant SW_TEMPLATE  : word := X"A6_00_00_00";
+    constant ADD_TEMPLATE : word := X"02_00_00_00";
+    constant BEQ_TEMPLATE : word := X"10_00_00_00";
 
 end package datapath_types;

@@ -13,20 +13,49 @@ end entity test_mem;
 --!@brief Memory test-bench architecture
 architecture test_mem_arch of test_mem is
 
-    signal clk : std_logic;
-    signal addr_in : addr;
-    signal data_in : word;
-    signal addr_out : addr;
-    signal data_out : word;
+    constant LW_RANGE_MIN  : addr := X"00_00_00_00";
+    constant LW_RANGE_MAX  : addr := X"00_00_00_3F";
+    constant SW_RANGE_MIN  : addr := X"00_00_00_40";
+    constant SW_RANGE_MAX  : addr := X"00_00_00_7F";
+    constant ADD_RANGE_MIN : addr := X"00_00_00_80";
+    constant ADD_RANGE_MAX : addr := X"00_00_00_BF";
+    constant BEQ_RANGE_MIN : addr := X"00_00_00_C0";
+    constant BEQ_RANGE_MAX : addr := X"00_00_00_FF";
+    constant BNE_RANGE_MIN : addr := X"00_00_01_00";
+    constant BNE_RANGE_MAX : addr := X"00_00_01_3F";
+    constant LUI_RANGE_MIN : addr := X"00_00_01_40";
+    constant LUI_RANGE_MAX : addr := X"00_00_01_FF";
+
+    signal clk           : std_logic;
+    signal addr_data     : addr;     
+    signal data          : word;  
+    signal access_data   : std_logic;
+    signal write_data    : std_logic;
+    signal ready_data    : std_logic;
+    signal addr_instr    : addr;    
+    signal instr         : word;    
+    signal access_instr  : std_logic;
+    signal ready_instr   : std_logic;
 
 begin
 
     mem_ent : entity work.mem( mem_behav )
+        generic map( LW_RANGE_MIN,  LW_RANGE_MAX,
+                     SW_RANGE_MIN,  SW_RANGE_MAX,
+                     ADD_RANGE_MIN, ADD_RANGE_MAX,
+                     BEQ_RANGE_MIN, BEQ_RANGE_MAX,
+                     BNE_RANGE_MIN, BNE_RANGE_MAX,
+                     LUI_RANGE_MIN, LUI_RANGE_MAX )
         port map( clk,
-                  addr_in,
-                  data_in,
-                  addr_out,
-                  data_out );
+                  addr_data,
+                  data,
+                  access_data,
+                  write_data,
+                  ready_data,
+                  addr_instr,
+                  instr,
+                  access_instr,
+                  ready_instr );
 
     test : process is
     begin
