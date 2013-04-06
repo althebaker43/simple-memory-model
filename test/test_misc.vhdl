@@ -17,8 +17,6 @@ begin
         port map( clk,
                   en );
 
-    en <= '0';
-
     test : process is 
     begin
         
@@ -26,21 +24,27 @@ begin
             report "TEST: Starting clk_gen tests."
             severity note;
 
+        wait for CLK_PERIOD;
         en <= '1';
 
         wait for ( CLK_PERIOD / 4 );
+        assert( clk = '1' )
+            report "TEST: Bad clk_gen output."
+            severity error;
+
+        wait for ( CLK_PERIOD / 2 );
         assert( clk = '0' )
             report "TEST: Bad clk_gen output."
             severity error;
 
-        wait for ( 3 * ( CLK_PERIOD / 4 ) );
-        assert( clk = '1' )
-            report "TEST: Bad clk_gen output."
-            severity error;
+        en <= '0';
+        wait for ( CLK_PERIOD / 2 );
         
         assert false
-            report "TEST: End of mem_behav tests."
+            report "TEST: End of clk_gen tests."
             severity note;
+
+        wait;
 
     end process test;
 end architecture test_misc_arch;

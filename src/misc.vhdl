@@ -34,15 +34,19 @@ end entity clk_gen;
 architecture clk_gen_behav of clk_gen is 
 begin
 
-    clk <= '0';
-
-    clock : process( en ) is
+    clock : process is
     begin
 
+        wait on en;
+
         while en = '1' loop
-            clk <= '1' after ( CLK_PERIOD / 2 );
-            clk <= '0' after ( CLK_PERIOD / 2 );
+            clk <= '1';
+            wait for ( CLK_PERIOD / 2 );
+            clk <= '0';
+            wait for ( CLK_PERIOD / 2 );
         end loop;
+
+        wait;
 
     end process clock;
 

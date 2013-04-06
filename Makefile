@@ -45,7 +45,7 @@ objs : $(SECTION_OBJS)
 $(RUNS) : run_% : test_% | \
                   $(OUT_DIR) \
                   $(PLOT_DIR)
-                  ./$(BIN_DIR)/$(notdir $<) \
+	./$(BIN_DIR)/$(notdir $<) \
 		--vcd=$(OUT_DIR)/$@.vcd
 
 $(TEST_BINS) : test_% : test_%.o | \
