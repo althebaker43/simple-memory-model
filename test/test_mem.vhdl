@@ -27,6 +27,7 @@ architecture test_mem_arch of test_mem is
     constant LUI_RANGE_MAX : addr := X"00_00_01_FF";
 
     signal clk           : std_logic;
+    signal clk_en        : std_logic;
     signal addr_data     : addr;     
     signal data          : word;  
     signal access_data   : std_logic;
@@ -38,6 +39,10 @@ architecture test_mem_arch of test_mem is
     signal ready_instr   : std_logic;
 
 begin
+
+    clk_gen_ent : entity work.clk_gen( clk_gen_behav )
+        port map( clk,
+                  clk_en );
 
     mem_ent : entity work.mem( mem_behav )
         generic map( LW_RANGE_MIN,  LW_RANGE_MAX,
@@ -63,6 +68,27 @@ begin
         assert false
             report "TEST: Starting mem_behav tests."
             severity note;
+        
+        addr_data <= NULL_ADDR;
+        data <= NULL_WORD;
+        access_data <= '0';
+        write_data <= '0';
+        access_instr <= '0';
+        wait for CLK_PERIOD;
+        
+        clk_en <= '1';
+        wait for CLK_PERIOD;
+
+        addr_instr <= LW_RANGE_MIN;
+        access_instr <= '1';
+        wait for ( 9 * CLK_PERIOD );
+
+        assert( ( instr and LW_TEMPLATE ) = LW_TEMPLATE )
+            report "ERROR: Bad instr output."
+            severity error;
+
+        clk_en <= '0';
+        wait for ( CLK_PERIOD / 2 );
         
         assert false
             report "TEST: End of mem_behav tests."

@@ -72,16 +72,28 @@ begin
             if read_instr_operation = true then
 
                 if read_instr_countdown = 0 then
+                    instr <= LW_TEMPLATE;
+                    ready_instr <= '1';
+                    read_instr_operation := false;
                     read_instr_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
                 else
                     read_instr_countdown := read_instr_countdown - 1;
                 end if;
 
+            elsif( access_instr = '1' ) then
+
+                read_instr_operation := true;
+                ready_instr <= '0';
+
             end if;
+
 
             if read_data_operation = true then
 
                 if read_data_countdown = 0 then
+                    data <= NULL_WORD;
+                    ready_data <= '1';
+                    read_data_operation := false;
                     read_data_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
                 else
                     read_data_countdown := read_data_countdown - 1;
@@ -90,10 +102,22 @@ begin
             elsif write_data_operation = true then
 
                 if write_data_countdown = 0 then
+                    ready_data <= '1';
+                    write_data_operation := false;
                     write_data_countdown := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
                 else
                     write_data_countdown := write_data_countdown - 1;
                 end if;
+
+            elsif access_data = '1' then
+
+                if write_data = '1' then
+                    write_data_operation := true;
+                else
+                    read_data_operation := false;
+                end if;
+
+                ready_data <= '0';
 
             end if;
 

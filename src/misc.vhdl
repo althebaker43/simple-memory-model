@@ -17,6 +17,9 @@ package datapath_types is
     subtype addr is unsigned( ( ADDR_SIZE - 1 ) downto 0 );
     subtype word is signed( ( WORD_SIZE - 1 ) downto 0 );
 
+    constant NULL_ADDR    : addr := B"00000000_00000000_00000000_00000000";
+    constant NULL_WORD    : word := B"00000000_00000000_00000000_00000000";
+
     constant LW_TEMPLATE  : word := X"86_00_00_00";
     constant SW_TEMPLATE  : word := X"A6_00_00_00";
     constant ADD_TEMPLATE : word := X"02_00_00_00";
