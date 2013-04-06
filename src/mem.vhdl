@@ -6,6 +6,7 @@ use work.datapath_types.all;
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
+use IEEE.math_real.all;
 
 --! @brief Memory entity
 entity mem is
@@ -70,35 +71,40 @@ begin
         variable write_data_countdown : natural := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
 
         function get_instr( addr_instr : in addr ) return word is
+
+            variable template : word;
+
         begin
             if ( ( addr_instr >= lw_range_min ) and
                  ( addr_instr <= lw_range_max ) ) then
-                return LW_TEMPLATE;
+                template := LW_TEMPLATE;
 
             elsif ( ( addr_instr >= sw_range_min ) and
                     ( addr_instr <= sw_range_max ) ) then
-                return SW_TEMPLATE;
+                template := SW_TEMPLATE;
 
             elsif ( ( addr_instr >= add_range_min ) and
                     ( addr_instr <= add_range_max ) ) then
-                return ADD_TEMPLATE;
+                template := ADD_TEMPLATE;
 
             elsif ( ( addr_instr >= beq_range_min ) and
                     ( addr_instr <= beq_range_max ) ) then
-                return BEQ_TEMPLATE;
+                template := BEQ_TEMPLATE;
 
             elsif ( ( addr_instr >= bne_range_min ) and
                     ( addr_instr <= bne_range_max ) ) then
-                return BNE_TEMPLATE;
+                template := BNE_TEMPLATE;
 
             elsif ( ( addr_instr >= lui_range_min ) and
                     ( addr_instr <= lui_range_max ) ) then
-                return LUI_TEMPLATE;
+                template := LUI_TEMPLATE;
 
             else
-                return NULL_WORD;
+                template := NULL_WORD;
 
             end if;
+
+            return template;
 
         end function;
 
