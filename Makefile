@@ -16,8 +16,9 @@ VPATH = $(SRC_DIR) \
 TARGET = datapath
 
 SECTIONS = cpu \
-		   cache \
-		   mem
+           cache \
+           mem \
+           misc
 
 SECTION_OBJS := $(SECTIONS:%=%.o)
 

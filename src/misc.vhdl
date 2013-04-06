@@ -23,3 +23,36 @@ package datapath_types is
     constant BEQ_TEMPLATE : word := X"10_00_00_00";
 
 end package datapath_types;
+
+
+use work.datapath_types.all;
+
+library IEEE;
+use IEEE.numeric_std.all;
+use IEEE.std_logic_1164.all;
+
+entity clk_gen is
+    port( clk : out std_logic;
+          en  : in std_logic );
+end entity clk_gen;
+
+architecture clk_gen_behav of clk_gen is 
+begin
+
+    clock : process is
+    begin
+
+        wait on en;
+
+        while en = '1' loop
+            clk <= '1';
+            wait for ( CLK_PERIOD / 2 );
+            clk <= '0';
+            wait for ( CLK_PERIOD / 2 );
+        end loop;
+
+        wait;
+
+    end process clock;
+
+end architecture clk_gen_behav;
