@@ -70,9 +70,12 @@ begin
         variable write_data_addr : addr;
         variable write_data_countdown : natural := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
 
-        function get_instr( addr_instr : in addr ) return word is
+        function get_random_instr( addr_instr : in addr ) return word is
 
-            variable template : word;
+            variable random_instr : word := NULL_WORD;
+            variable template : word := NULL_WORD;
+            variable rs : word := NULL_WORD;
+            variable rt : word := NULL_WORD;
 
         begin
             if ( ( addr_instr >= lw_range_min ) and
@@ -104,7 +107,14 @@ begin
 
             end if;
 
-            return template;
+            rs := ( to_signed( rand, WORD_SIZE ) sll INSTR_RS_POS ) and INSTR_RS_MASK;
+            rt := ( to_signed( rand, WORD_SIZE ) sll INSTR_RT_POS ) and INSTR_RT_MASK;
+
+            random_instr := random_instr or template;
+            random_instr := random_instr or rs;
+            random_instr := random_instr or rt;
+
+            return random_instr;
 
         end function;
 
@@ -115,7 +125,7 @@ begin
             if read_instr_operation = true then
 
                 if read_instr_countdown = 0 then
-                    instr <= get_instr( read_data_addr );
+                    instr <= get_random_instr( read_data_addr );
                     ready_instr <= '1';
                     read_instr_operation := false;
                     read_instr_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;

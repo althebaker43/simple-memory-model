@@ -1,11 +1,9 @@
 --! @file misc.vhdl
 --! @brief File containing miscellaneous datapath components and definitions
---!
---! @todo Add clock generator
 
 library IEEE;
-use IEEE.numeric_std.all;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 
 package datapath_types is
 
@@ -20,12 +18,34 @@ package datapath_types is
     constant NULL_ADDR    : addr := B"00000000_00000000_00000000_00000000";
     constant NULL_WORD    : word := B"00000000_00000000_00000000_00000000";
 
-    constant LW_TEMPLATE  : word := X"86_00_00_00";
-    constant SW_TEMPLATE  : word := X"A6_00_00_00";
-    constant ADD_TEMPLATE : word := X"02_00_00_00";
-    constant BEQ_TEMPLATE : word := X"10_00_00_00";
-    constant BNE_TEMPLATE : word := X"11_00_00_00";
-    constant LUI_TEMPLATE : word := X"87_00_00_00";
+    constant LW_TEMPLATE  : word := B"100011_00000_00000_0000000000000000";
+    constant SW_TEMPLATE  : word := B"101011_00000_00000_0000000000000000";
+    constant ADD_TEMPLATE : word := B"000000_00000_00000_00000_00000_100000";
+    constant BEQ_TEMPLATE : word := B"000100_00000_00000_0000000000000000";
+    constant BNE_TEMPLATE : word := B"000101_00000_00000_0000000000000000";
+    constant LUI_TEMPLATE : word := B"100100_00000_00000_0000000000000000";
+
+    constant INSTR_OP_MASK : word       := B"111111_00000_00000_0000000000000000";
+    constant INSTR_RS_MASK : word       := B"000000_11111_00000_0000000000000000";
+    constant INSTR_RT_MASK : word       := B"000000_00000_11111_0000000000000000";
+    constant INSTR_IMMED_MASK : word    := B"000000_00000_00000_1111111111111111";
+    constant INSTR_RD_MASK : word       := B"000000_00000_00000_11111_00000_000000";
+    constant INSTR_SHMT_MASK : word     := B"000000_00000_00000_00000_11111_000000";
+    constant INSTR_FUNCT_MASK : word    := B"000000_00000_00000_00000_00000_111111";
+    
+    constant INSTR_RS_POS : natural     := 21;
+    constant INSTR_RT_POS : natural     := 16;
+    constant INSTR_IMMED_POS : natural  := 0;
+    constant INSTR_RD_RD_POS : natural  := 11;
+    constant INSTR_SHMT_POS : natural   := 6;
+    constant INSTR_FUNCT_POS : natural  := 0;
+
+    constant INSTR_RS_SIZE : natural    := 5;
+    constant INSTR_RT_SIZE : natural    := 5;
+    constant INSTR_IMMED_SIZE : natural := 16;
+    constant INSTR_RD_SIZE : natural    := 5;
+    constant INSTR_SHMT_SIZE : natural  := 5;
+    constant INSTR_FUNCT_SIZE : natural := 6;
 
 end package datapath_types;
 
@@ -33,8 +53,8 @@ end package datapath_types;
 use work.datapath_types.all;
 
 library IEEE;
-use IEEE.numeric_std.all;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 
 entity clk_gen is
     port( clk : out std_logic;

@@ -78,10 +78,21 @@ begin
             access_instr <= '0';
             wait on ready_instr;
             
-            assert( ( instr and instr_template ) = instr_template )
-                report "ERROR: Bad instr output."
-                severity error;
-            wait for CLK_PERIOD;
+            if instr_template = ADD_TEMPLATE then
+
+                assert( ( instr and INSTR_FUNCT_MASK ) = instr_template )
+                    report "ERROR: Bad instr output."
+                    severity error;
+                wait for CLK_PERIOD;
+
+            else
+
+                assert( ( instr and INSTR_OP_MASK ) = instr_template )
+                    report "ERROR: Bad instr output."
+                    severity error;
+                wait for CLK_PERIOD;
+                
+            end if;
 
             addr_instr <= max_bound;
             access_instr <= '1';
@@ -91,10 +102,21 @@ begin
             access_instr <= '0';
             wait on ready_instr;
             
-            assert( ( instr and instr_template ) = instr_template )
-                report "ERROR: Bad instr output."
-                severity error;
-            wait for CLK_PERIOD;
+            if instr_template = ADD_TEMPLATE then
+
+                assert( ( instr and INSTR_FUNCT_MASK ) = instr_template )
+                    report "ERROR: Bad instr output."
+                    severity error;
+                wait for CLK_PERIOD;
+
+            else
+
+                assert( ( instr and INSTR_OP_MASK ) = instr_template )
+                    report "ERROR: Bad instr output."
+                    severity error;
+                wait for CLK_PERIOD;
+                
+            end if;
 
         end procedure;
 
