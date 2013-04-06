@@ -5,6 +5,7 @@ use work.datapath_types.all;
 
 library IEEE;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 
 --! @brief Memory test-bench entity
 entity test_mem is
@@ -63,6 +64,40 @@ begin
                   ready_instr );
 
     test : process is
+
+        procedure test_instr_mem_bounds( min_bound      : in addr;
+                                         max_bound      : in addr;
+                                         instr_template : in word ) is
+        begin
+
+            addr_instr <= min_bound;
+            access_instr <= '1';
+            wait for CLK_PERIOD;
+
+            addr_instr <= NULL_ADDR;
+            access_instr <= '0';
+            wait on ready_instr;
+            
+            assert( ( instr and instr_template ) = instr_template )
+                report "ERROR: Bad instr output."
+                severity error;
+            wait for CLK_PERIOD;
+
+            addr_instr <= max_bound;
+            access_instr <= '1';
+            wait for CLK_PERIOD;
+
+            addr_instr <= NULL_ADDR;
+            access_instr <= '0';
+            wait on ready_instr;
+            
+            assert( ( instr and instr_template ) = instr_template )
+                report "ERROR: Bad instr output."
+                severity error;
+            wait for CLK_PERIOD;
+
+        end procedure;
+
     begin
         
         assert false
@@ -79,16 +114,32 @@ begin
         clk_en <= '1';
         wait for CLK_PERIOD;
 
-        addr_instr <= LW_RANGE_MIN;
-        access_instr <= '1';
-        wait for ( 9 * CLK_PERIOD );
+        test_instr_mem_bounds( LW_RANGE_MIN,
+                               LW_RANGE_MAX,
+                               LW_TEMPLATE );
 
-        assert( ( instr and LW_TEMPLATE ) = LW_TEMPLATE )
-            report "ERROR: Bad instr output."
-            severity error;
+        test_instr_mem_bounds( SW_RANGE_MIN,
+                               SW_RANGE_MAX,
+                               SW_TEMPLATE );
+
+        test_instr_mem_bounds( ADD_RANGE_MIN,
+                               ADD_RANGE_MAX,
+                               ADD_TEMPLATE );
+
+        test_instr_mem_bounds( BEQ_RANGE_MIN,
+                               BEQ_RANGE_MAX,
+                               BEQ_TEMPLATE );
+
+        test_instr_mem_bounds( BNE_RANGE_MIN,
+                               BNE_RANGE_MAX,
+                               BNE_TEMPLATE );
+
+        test_instr_mem_bounds( LUI_RANGE_MIN,
+                               LUI_RANGE_MAX,
+                               LUI_TEMPLATE );
 
         clk_en <= '0';
-        wait for ( CLK_PERIOD / 2 );
+        wait for CLK_PERIOD;
         
         assert false
             report "TEST: End of mem_behav tests."

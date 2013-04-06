@@ -5,6 +5,7 @@ use work.datapath_types.all;
 
 library IEEE;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 
 --! @brief Memory entity
 entity mem is
@@ -22,7 +23,7 @@ entity mem is
           access_data   : in std_logic;     --!< Input signal that triggers start of data access operation
           write_data    : in std_logic;     --!< Input signal that indicates if the data operation is a read or write
           ready_data    : out std_logic;    --!< Output signal that indicates when data is ready for read operations
-          addr_instr    : out addr;         --!< Input address for instruction access
+          addr_instr    : in addr;          --!< Input address for instruction access
           instr         : out word;         --!< Output instruction word
           access_instr  : in std_logic;     --!< Input signal that triggers start of instruction access operation
           ready_instr   : out std_logic     --!< Output signal that indicates when instruction is ready for read operation
@@ -57,13 +58,49 @@ begin
     operate : process( clk_in ) is
 
         variable read_instr_operation : boolean := false;
+        variable read_instr_addr : addr;
         variable read_data_countdown : natural := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
 
         variable read_data_operation : boolean := false;
+        variable read_data_addr : addr;
         variable read_instr_countdown : natural := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
 
         variable write_data_operation : boolean := false;
+        variable write_data_addr : addr;
         variable write_data_countdown : natural := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
+
+        function get_instr( addr_instr : in addr ) return word is
+        begin
+            if ( ( addr_instr >= lw_range_min ) and
+                 ( addr_instr <= lw_range_max ) ) then
+                return LW_TEMPLATE;
+
+            elsif ( ( addr_instr >= sw_range_min ) and
+                    ( addr_instr <= sw_range_max ) ) then
+                return SW_TEMPLATE;
+
+            elsif ( ( addr_instr >= add_range_min ) and
+                    ( addr_instr <= add_range_max ) ) then
+                return ADD_TEMPLATE;
+
+            elsif ( ( addr_instr >= beq_range_min ) and
+                    ( addr_instr <= beq_range_max ) ) then
+                return BEQ_TEMPLATE;
+
+            elsif ( ( addr_instr >= bne_range_min ) and
+                    ( addr_instr <= bne_range_max ) ) then
+                return BNE_TEMPLATE;
+
+            elsif ( ( addr_instr >= lui_range_min ) and
+                    ( addr_instr <= lui_range_max ) ) then
+                return LUI_TEMPLATE;
+
+            else
+                return NULL_WORD;
+
+            end if;
+
+        end function;
 
     begin
 
@@ -72,7 +109,7 @@ begin
             if read_instr_operation = true then
 
                 if read_instr_countdown = 0 then
-                    instr <= LW_TEMPLATE;
+                    instr <= get_instr( read_data_addr );
                     ready_instr <= '1';
                     read_instr_operation := false;
                     read_instr_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
@@ -83,6 +120,7 @@ begin
             elsif( access_instr = '1' ) then
 
                 read_instr_operation := true;
+                read_data_addr := addr_instr;
                 ready_instr <= '0';
 
             end if;

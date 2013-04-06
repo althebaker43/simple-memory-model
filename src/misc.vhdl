@@ -24,6 +24,8 @@ package datapath_types is
     constant SW_TEMPLATE  : word := X"A6_00_00_00";
     constant ADD_TEMPLATE : word := X"02_00_00_00";
     constant BEQ_TEMPLATE : word := X"10_00_00_00";
+    constant BNE_TEMPLATE : word := X"11_00_00_00";
+    constant LUI_TEMPLATE : word := X"87_00_00_00";
 
 end package datapath_types;
 
