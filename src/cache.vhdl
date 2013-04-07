@@ -113,15 +113,17 @@ begin
         variable storage_dirtys : block_dirtys_arr;
 
 
-        --! Gets cache block index given address
+        --! @brief Gets cache block index given address
+        --!
+        --! @param sample_addr Input address to look up
+        --! @param valid_addr Indicates if given address is covered by cache
+        --! @param block_indx Block number corresponding to given address (if valid)
         --! 
-        --! @todo Rename to get_block_indx
         --! @todo Verify that included calculations use floor-type functions
         --! for rounding naturals
-        procedure get_block_num( sample_addr : in addr;     --!< Input address to look up
-                                 valid_addr : out boolean;  --!< Indicates if given address is covered by cache
-                                 block_num  : out natural   --!< Block number corresponding to given address (if valid)
-                             ) is
+        procedure get_block_indx( sample_addr   : in addr;
+                                  valid_addr    : out boolean;
+                                  block_indx    : out natural ) is
             
             variable sample_addr_nat : natural;
             variable min_addr_nat : natural;
@@ -131,7 +133,7 @@ begin
         begin
 
             valid_addr := false;
-            block_num := 0;
+            block_indx := 0;
 
             sample_addr_nat := to_integer( sample_addr );
             min_addr_nat := to_integer( min_addr );
@@ -145,21 +147,26 @@ begin
             end if;
 
             abs_addr_nat := sample_addr_nat - min_addr_nat;
-            block_num := abs_addr_nat / BLOCK_MEM_CVRG;
+            block_indx := abs_addr_nat / BLOCK_MEM_CVRG;
 
-        end procedure get_block_num;
+        end procedure get_block_indx;
 
 
-        --! Gets address given cache block index, address index, and one address included in block
+        --! @brief Gets address given cache block index, address index, and one
+        --! address included in block
+        --!
+        --! @param block_indx Index of block
+        --! @param incl_addr Address to be included anywhere within block
+        --! @param addr_indx Index of address
+        --! @param Resulting address
         --! 
         --! @todo Double-check math
         --! @todo Verify that included calculations use floor-type functions
         --! for rounding naturals
-        procedure get_block_addr( block_num     : in natural;   --!< Index of block
-                                  incl_addr     : in addr;      --!< Address to be included anywhere within block
-                                  addr_indx     : in natural;   --!< Index of address
-                                  sample_addr   : out addr      --!< Resulting address
-                              ) is
+        procedure get_block_addr( block_indx    : in natural;
+                                  incl_addr     : in addr;
+                                  addr_indx     : in natural;
+                                  sample_addr   : out addr ) is
 
             variable incl_addr_nat : natural;
             variable min_addr_nat : natural;
@@ -181,12 +188,16 @@ begin
         end procedure get_block_addr;
 
 
-        --! Fetch data word at given index within given block
-        procedure query_block_indx( block_num   : in natural;   --!< Index of block to search within
-                                    word_indx   : in natural;   --!< Index to retrieve data from
-                                    sample_addr : out addr;     --!< Address at index
-                                    sample_data : out word      --!< Data at index
-                                ) is
+        --! @brief Fetch data word at given index within given block
+        --!
+        --! @param block_indx Index of block within cache to search within
+        --! @param word_indx Index within block to retrieve data from
+        --! @param sample_addr Address at index
+        --! @param sample_data Data at index
+        procedure query_block_indx( block_indx  : in natural;
+                                    word_indx   : in natural;
+                                    sample_addr : out addr;
+                                    sample_data : out word ) is
             
             variable cur_block_addrs : cache_block_addrs;
             variable cur_block : cache_block;
@@ -196,8 +207,8 @@ begin
             sample_addr := NULL_ADDR;
             sample_data := NULL_WORD;
 
-            cur_block_addrs := storage_addrs( block_num );
-            cur_block := storage( block_num );
+            cur_block_addrs := storage_addrs( block_indx );
+            cur_block := storage( block_indx );
 
             sample_addr := cur_block_addrs( word_indx );
             sample_data := cur_block( word_indx );
@@ -205,14 +216,21 @@ begin
         end procedure query_block_indx;
 
 
-        --! Attempt to fetch data within block given address and block attributes
-        procedure query_block_addr( sample_addr : in addr;      --!< Input address to look up within block
-                                    block_num   : in natural;   --!< Index of block to search within
-                                    present     : out boolean;  --!< Indicates if given address is present within given block
-                                    avbl        : out boolean;  --!< Indicates if given block index is available
-                                    dirty       : out boolean;  --!< Indicates if given block is dirty or not
-                                    sample_data : out word      --!< Data at address (if present)
-                           ) is
+        --! @brief Attempt to fetch data within block given address and block
+        --! attributes
+        --!
+        --! @param block_indx Index of block within cache to search within
+        --! @param sample_addr Input address to look up within block
+        --! @param present Indicates if given address is present within block
+        --! @param avbl Indicates if given block index is available
+        --! @param dirty Indicates if given block is dirty or not
+        --! @param sample_data Data at address (if address if present)
+        procedure query_block_addr( block_indx  : in natural;
+                                    sample_addr : in addr;
+                                    present     : out boolean;
+                                    avbl        : out boolean;
+                                    dirty       : out boolean;
+                                    sample_data : out word ) is
             
             variable cur_block_addrs : cache_block_addrs;
             variable cur_block : cache_block;
@@ -224,20 +242,20 @@ begin
             dirty := false;
             sample_data := NULL_WORD;
 
-            if storage_avbls( block_num ) = '1' then
+            if storage_avbls( block_indx ) = '1' then
 
                 avbl := true;
 
             else
 
-                if storage_dirtys( block_num ) = '1' then
+                if storage_dirtys( block_indx ) = '1' then
 
                     dirty := true;
 
                 end if;
 
-                cur_block_addrs := storage_addrs( block_num );
-                cur_block := storage( block_num );
+                cur_block_addrs := storage_addrs( block_indx );
+                cur_block := storage( block_indx );
 
                 for block_addr_indx in cur_block_addrs'range loop
 
@@ -255,14 +273,21 @@ begin
         end procedure query_block_addr;
 
 
-        --! Fetches data and block attributes corresponding to given address
-        procedure query_cache( sample_addr  : in addr;      --!< Input address to look up
-                               valid        : out boolean;  --!< Indicates if given address if covered by cache
-                               present      : out boolean;  --!< Indicates if address is present within cache
-                               avbl         : out boolean;  --!< Indicates if corresponding block is available
-                               dirty        : out boolean;  --!< Indicates if corresponding block is dirty
-                               sample_data  : out word      --!< Data at address (if present)
-                          ) is
+        --! @brief Fetches data and block attributes corresponding to given
+        --! address
+        --!
+        --! @param sample_addr Input address to look up
+        --! @param valid Indicates if given address is covered by cache
+        --! @param present Indicates if address is present within cache
+        --! @param avbl Indicates if corresponding block is available
+        --! @param dirty Indicates if corresponding block is dirty
+        --! @param sample_data Data at address (if address if present)
+        procedure query_cache( sample_addr  : in addr;
+                               valid        : out boolean;
+                               present      : out boolean;
+                               avbl         : out boolean;
+                               dirty        : out boolean;
+                               sample_data  : out word ) is
 
             variable addr_valid : boolean := false;
             variable block_num : natural := 0;
@@ -274,16 +299,16 @@ begin
             avbl := true;
             sample_data := NULL_WORD;
 
-            get_block_num( sample_addr,
-                           addr_valid,
-                           block_num );
+            get_block_indx( sample_addr,
+                            addr_valid,
+                            block_num );
 
             if addr_valid = true then 
 
                 valid := true;
 
-                query_block_addr( sample_addr,
-                                  block_num,
+                query_block_addr( block_num,
+                                  sample_addr,
                                   present,
                                   avbl,
                                   dirty,
@@ -294,7 +319,7 @@ begin
         end procedure query_cache;
 
 
-        --! Initializes memory-writing operation
+        --! @brief Initializes memory-writing operation
         --!
         --! Each call to this procedure writes another word to memory. The
         --! index of the word within the block currently being written is
@@ -303,8 +328,9 @@ begin
         --! a block in words, then mem_write_operation is set to false to
         --! terminate the writing operation. mem_read_operation is then set to
         --! true to begin the reading operation into the same block.
-        procedure mem_write_block( sample_addr : in addr    --!< Input address to write corresponding block
-                                 ) is
+        --!
+        --! @param sample_addr Input address to write corresponding block
+        procedure mem_write_block( sample_addr : in addr ) is
 
             variable block_num : natural := 0;
             variable addr_valid : boolean := false;
@@ -315,9 +341,9 @@ begin
 
             if mem_write_block_word_indx < 8 then
 
-                get_block_num( sample_addr,
-                               addr_valid,
-                               block_num );
+                get_block_indx( sample_addr,
+                                addr_valid,
+                                block_num );
 
                 if addr_valid = true then
 
@@ -346,9 +372,10 @@ begin
         end procedure mem_write_block;
 
 
-        --! Initializes memory-reading operation
-        procedure mem_read_block( sample_addr : in addr     --!< Input address to read corresponding block
-                                ) is
+        --! @brief Initializes memory-reading operation
+        --!
+        --! @param sample_addr Input address to read corresponding block
+        procedure mem_read_block( sample_addr : in addr ) is
 
             variable block_num : natural := 0;
             variable addr_valid : boolean := false;
@@ -358,9 +385,9 @@ begin
 
             if mem_read_block_word_indx < 8 then
 
-                get_block_num( sample_addr,
-                               addr_valid,
-                               block_num );
+                get_block_indx( sample_addr,
+                                addr_valid,
+                                block_num );
 
                 if addr_valid = true then
 
@@ -389,10 +416,12 @@ begin
         end procedure mem_read_block;
 
 
-        --! Stores word at the given address within the cache
+        --! @brief Stores word at the given address within the cache
+        --!
+        --! @param sample_addr Address to store data at
+        --! @param sample_data Data to store
         procedure store_word( sample_addr : in addr;
-                              sample_data : in word
-                          ) is
+                              sample_data : in word ) is
             
             variable valid_addr : boolean;
             variable block_num : natural;
@@ -407,9 +436,9 @@ begin
 
         begin
 
-            get_block_num( sample_addr,
-                           valid_addr,
-                           block_num );
+            get_block_indx( sample_addr,
+                            valid_addr,
+                            block_num );
 
             cur_block := storage( block_num );
             cur_block_addrs := storage_addrs( block_num );
