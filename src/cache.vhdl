@@ -103,6 +103,7 @@ begin
 
         variable mem_write_block_word_indx : natural := 0;
         variable mem_read_block_word_indx : natural := 0;
+        variable mem_read_block_addr : addr;
 
         variable mem_sample_data : word;
 
@@ -112,8 +113,9 @@ begin
         variable storage_dirtys : block_dirtys_arr;
 
 
-        --! Gets block index given address
-        --!
+        --! Gets cache block index given address
+        --! 
+        --! @todo Rename to get_block_indx
         --! @todo Verify that included calculations use floor-type functions
         --! for rounding naturals
         procedure get_block_num( sample_addr : in addr;     --!< Input address to look up
@@ -149,7 +151,8 @@ begin
 
 
         --! Gets address given cache block index, address index, and one address included in block
-        --!
+        --! 
+        --! @todo Double-check math
         --! @todo Verify that included calculations use floor-type functions
         --! for rounding naturals
         procedure get_block_addr( block_num     : in natural;   --!< Index of block
@@ -366,6 +369,9 @@ begin
                                     mem_read_block_word_indx,
                                     read_addr );
 
+                    mem_read_block_word_indx := mem_read_block_word_indx + 1;
+                    mem_read_block_addr := read_addr;
+
                     mem_addr <= read_addr;
                     mem_data <= WEAK_WORD;
                     mem_access <= '1';
@@ -383,9 +389,39 @@ begin
         end procedure mem_read_block;
 
 
+        --! Stores word at the given address within the cache
         procedure store_word( sample_addr : in addr;
-                              sample_data : in word ) is
+                              sample_data : in word
+                          ) is
+            
+            variable valid_addr : boolean;
+            variable block_num : natural;
+            variable sample_addr_nat : natural;
+            variable min_addr_nat : natural;
+            variable sample_addr_abs_nat : natural;
+            variable sample_addr_block_abs_nat : natural;
+            variable sample_addr_indx : natural;
+
+            variable cur_block : cache_block;
+            variable cur_block_addrs : cache_block_addrs;
+
         begin
+
+            get_block_num( sample_addr,
+                           valid_addr,
+                           block_num );
+
+            cur_block := storage( block_num );
+            cur_block_addrs := storage_addrs( block_num );
+            
+            sample_addr_nat := to_integer( sample_addr );
+            min_addr_nat := to_integer( min_addr );
+            sample_addr_abs_nat := sample_addr_nat - min_addr_nat;
+            sample_addr_block_abs_nat := sample_addr_abs_nat mod 32;
+            sample_addr_indx := sample_addr_block_abs_nat / 4;
+
+            cur_block( sample_addr_indx ) := sample_data;
+            cur_block_addrs( sample_addr_indx ) := sample_addr;
 
         end procedure store_word;
 
@@ -420,7 +456,8 @@ begin
                     -- Finished waiting for memory to finish read
                     if mem_ready = '1' then
 
-                        --store_word
+                        store_word( mem_read_block_addr,
+                                    mem_data );
                         mem_read_block( cpu_sample_addr );
 
                     end if;
