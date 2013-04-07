@@ -97,6 +97,8 @@ begin
         variable cur_avbl : boolean := false;
         variable cur_dirty : boolean := false;
 
+        variable mem_write_block_word_indx : natural := 0;
+
         variable mem_sample_data : word;
 
         variable storage : block_arr;
@@ -137,12 +139,37 @@ begin
         end procedure get_block_num;
 
 
-        procedure query_block( sample_addr  : in addr;      --!< Input address to look up within block
-                               block_num    : in natural;   --!< Index of block to search within
-                               present      : out boolean;  --!< Indicates if given address is present within given block
-                               avbl         : out boolean;  --!< Indicates if given block index is available
-                               dirty        : out boolean;  --!< Indicates if given block is dirty or not
-                               sample_data  : out word      --!< Data at address (if present)
+        --! Fetch data word at given index within given block
+        procedure query_block_indx( block_num   : in natural;   --!< Index of block to search within
+                                    word_indx   : in natural;   --!< Index to retrieve data from
+                                    sample_addr : out addr;     --!< Address at index
+                                    sample_data : out word      --!< Data at index
+                                ) is
+            
+            variable cur_block_addrs : cache_block_addrs;
+            variable cur_block : cache_block;
+
+        begin
+
+            sample_addr := NULL_ADDR;
+            sample_data := NULL_WORD;
+
+            cur_block_addrs := storage_addrs( block_num );
+            cur_block := storage( block_num );
+
+            sample_addr := cur_block_addrs( word_indx );
+            sample_data := cur_block( word_indx );
+
+        end procedure query_block_indx;
+
+
+        --! Attempt to fetch data within block given address and block attributes
+        procedure query_block_addr( sample_addr : in addr;      --!< Input address to look up within block
+                                    block_num   : in natural;   --!< Index of block to search within
+                                    present     : out boolean;  --!< Indicates if given address is present within given block
+                                    avbl        : out boolean;  --!< Indicates if given block index is available
+                                    dirty       : out boolean;  --!< Indicates if given block is dirty or not
+                                    sample_data : out word      --!< Data at address (if present)
                            ) is
             
             variable cur_block_addrs : cache_block_addrs;
@@ -183,7 +210,7 @@ begin
 
             end if;
 
-        end procedure query_block;
+        end procedure query_block_addr;
 
 
         --! Fetches data and block attributes corresponding to given address
@@ -213,28 +240,97 @@ begin
 
                 valid := true;
 
-                query_block( sample_addr,
-                             block_num,
-                             present,
-                             avbl,
-                             dirty,
-                             sample_data );
+                query_block_addr( sample_addr,
+                                  block_num,
+                                  present,
+                                  avbl,
+                                  dirty,
+                                  sample_data );
 
             end if;
 
         end procedure query_cache;
 
 
+        --! Writes block from cache to memory
+        --!
+        --! Each call to this procedure writes another word to memory. The
+        --! index of the word within the block currently being written is
+        --! tracked by the process-global variable mem_write_block_word_indx.
+        --! When the value of this variable becomes equal to the size of
+        --! a block in words, then mem_write_operation is set to false to
+        --! terminate the writing operation. mem_read_operation is then set to
+        --! true to begin the reading operation into the same block.
+        procedure mem_write_block( sample_addr : in addr    --!< Input address to write corresponding block
+                                 ) is
+
+            variable block_num : natural := 0;
+            variable addr_valid : boolean := false;
+            variable write_addr : addr := NULL_ADDR;
+            variable write_data : word := NULL_WORD;
+
+        begin
+
+            if mem_write_block_word_indx < 8 then
+
+                get_block_num( sample_addr,
+                               addr_valid,
+                               block_num );
+
+                if addr_valid = true then
+
+                    query_block_indx( block_num,
+                                      mem_write_block_word_indx,
+                                      write_addr,
+                                      write_data );
+
+                    mem_write_block_word_indx := mem_write_block_word_indx + 1;
+
+                    mem_addr <= write_addr;
+                    mem_data <= write_data;
+                    mem_access <= '1';
+                    mem_write <= '1';
+
+                end if;
+
+            else
+
+                mem_write_operation := false;
+                mem_read_operation := true;
+
+            end if;
+
+        end procedure mem_write_block;
+
+
+        --! Reads block from memory into cache
+        procedure mem_read_block( sample_addr : in addr     --!< Input address to read corresponding block
+                                ) is
+
+            variable block_num : natural := 0;
+            variable addr_valid : boolean := false;
+
+        begin
+
+            get_block_num( sample_addr,
+                           addr_valid,
+                           block_num );
+
+
+        end procedure mem_read_block;
+
+
         procedure store_data( sample_addr : in addr;
                               sample_data : in word ) is
         begin
 
-        end procedure;
+        end procedure store_data;
 
     begin
 
         if clk = '1' then
 
+            -- Currently serving CPU read request
             if cpu_read_operation = true then
 
                 query_cache( cpu_sample_addr,
@@ -244,24 +340,27 @@ begin
                              cur_dirty,
                              cpu_sample_data );
 
+                -- Currently writing block into memory
                 if mem_write_operation = true then
 
+                    -- Finished waiting for memory to finish write
                     if mem_ready = '1' then
 
-                        mem_write_operation := false;
-                        mem_read_operation := true;
+                        mem_write_block( cpu_sample_addr );
 
                     end if;
 
+                -- Currently reading block into cache
                 elsif mem_read_operation = true then
 
+                    -- Finished waiting for memory to finish read
                     if mem_ready = '1' then
 
-                        store_data( cpu_sample_addr, mem_sample_data );
-                        mem_read_operation := false;
+                        mem_read_block( cpu_sample_addr );
 
                     end if;
 
+                -- Block is present within cache
                 elsif cur_present = true then
 
                     cpu_data <= cpu_sample_data;
@@ -276,7 +375,15 @@ begin
 
                     else
 
-                        mem_write_operation := true;
+                        if cur_dirty = false then
+
+                            mem_read_operation := true;
+
+                        else
+
+                            mem_write_operation := true;
+
+                        end if;
 
                     end if;
 
