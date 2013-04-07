@@ -29,8 +29,6 @@ entity mem is
           access_instr  : in std_logic;     --!< Input signal that triggers start of instruction access operation
           ready_instr   : out std_logic     --!< Output signal that indicates when instruction is ready for read operation
         );
-          
-          
 
 end entity mem;
 
@@ -49,12 +47,23 @@ end entity mem;
 --! @li Variable address ranges for different instruction types
 architecture mem_behav of mem is
 
+    constant INSTR_RANGE_MIN : addr := X"00_00_00_00";
+    constant INSTR_RANGE_MAX : addr := X"00_00_01_FC";
+    constant DATA_RANGE_MIN : addr  := X"00_00_02_00";
+    constant DATA_RANGE_MAX : addr  := X"00_00_03_FF";
+
+    type storage is array ( 128 to 255 ) of word;
+
     constant READ_ACCESS_DELAY : natural := 5;  --!< Read access delay per word
     constant READ_ADDNL_DELAY : natural := 3;   --!< Read additional delay per word
     constant WRITE_ACCESS_DELAY : natural := 3; --!< Write access delay per word
     constant WRITE_ADDNL_DELAY : natural := 4;  --!< Write additional delay per word
 
 begin
+
+    ready_instr <= '0';
+    ready_data <= '0';
+    data <= WEAK_WORD;
 
     operate : process( clk_in ) is
 
@@ -63,12 +72,15 @@ begin
         variable read_data_countdown : natural := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
 
         variable read_data_operation : boolean := false;
-        variable read_data_addr : addr;
+        variable read_data_pos : integer;
         variable read_instr_countdown : natural := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
 
         variable write_data_operation : boolean := false;
-        variable write_data_addr : addr;
+        variable write_data_pos : integer;
+        variable write_data_input : word;
         variable write_data_countdown : natural := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
+
+        variable storage_var : storage;
 
         function get_random_instr( addr_instr : in addr ) return word is
 
@@ -125,18 +137,18 @@ begin
             if read_instr_operation = true then
 
                 if read_instr_countdown = 0 then
-                    instr <= get_random_instr( read_data_addr );
+                    instr <= get_random_instr( read_instr_addr );
                     ready_instr <= '1';
                     read_instr_operation := false;
-                    read_instr_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
                 else
                     read_instr_countdown := read_instr_countdown - 1;
                 end if;
 
-            elsif( access_instr = '1' ) then
+            elsif access_instr = '1' then
 
                 read_instr_operation := true;
-                read_data_addr := addr_instr;
+                read_instr_addr := addr_instr;
+                read_instr_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
                 ready_instr <= '0';
 
             end if;
@@ -145,10 +157,9 @@ begin
             if read_data_operation = true then
 
                 if read_data_countdown = 0 then
-                    data <= NULL_WORD;
+                    data <= storage_var( read_data_pos );
                     ready_data <= '1';
                     read_data_operation := false;
-                    read_data_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
                 else
                     read_data_countdown := read_data_countdown - 1;
                 end if;
@@ -156,9 +167,9 @@ begin
             elsif write_data_operation = true then
 
                 if write_data_countdown = 0 then
+                    storage_var( write_data_pos ) := write_data_input;
                     ready_data <= '1';
                     write_data_operation := false;
-                    write_data_countdown := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
                 else
                     write_data_countdown := write_data_countdown - 1;
                 end if;
@@ -167,11 +178,20 @@ begin
 
                 if write_data = '1' then
                     write_data_operation := true;
+                    write_data_pos := to_integer( addr_data srl 2 );
+                    write_data_input := data;
+                    write_data_countdown := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
                 else
-                    read_data_operation := false;
+                    read_data_operation := true;
+                    read_data_pos := to_integer( addr_data srl 2 );
+                    read_data_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
                 end if;
 
                 ready_data <= '0';
+
+            else
+
+                data <= WEAK_WORD;
 
             end if;
 

@@ -6,6 +6,7 @@ use work.datapath_types.all;
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
+use IEEE.math_real.all;
 
 --! @brief Memory test-bench entity
 entity test_mem is
@@ -26,6 +27,9 @@ architecture test_mem_arch of test_mem is
     constant BNE_RANGE_MAX : addr := X"00_00_01_3F";
     constant LUI_RANGE_MIN : addr := X"00_00_01_40";
     constant LUI_RANGE_MAX : addr := X"00_00_01_FF";
+
+    constant DATA_RANGE_MIN : addr := X"00_00_02_00";
+    constant DATA_RANGE_MAX : addr := X"00_00_03_FF";
 
     signal clk           : std_logic;
     signal clk_en        : std_logic;
@@ -120,6 +124,42 @@ begin
 
         end procedure;
 
+        procedure test_data_retention( sample_data  : in word;
+                                       sample_addr  : in addr ) is
+        begin
+
+            addr_data <= sample_addr;
+            data <= sample_data;
+            access_data <= '1';
+            write_data <= '1';
+            wait for CLK_PERIOD;
+
+            addr_data <= NULL_ADDR;
+            data <= NULL_WORD;
+            access_data <= '0';
+            write_data <= '0';
+            wait on ready_data;
+            wait for CLK_PERIOD;
+
+            data <= WEAK_WORD;
+            addr_data <= sample_addr;
+            access_data <= '1';
+            write_data <= '0';
+            wait for CLK_PERIOD;
+
+            data <= WEAK_WORD;
+            addr_data <= NULL_ADDR;
+            access_data <= '0';
+            write_data <= '0';
+            wait on ready_data;
+
+            assert( data = sample_data )
+                report "ERROR: Bad data output."
+                severity error;
+            wait for CLK_PERIOD;
+
+        end procedure;
+
     begin
         
         assert false
@@ -136,35 +176,59 @@ begin
         clk_en <= '1';
         wait for CLK_PERIOD;
 
+        assert false
+            report "TEST:   Testing LW bounds."
+            severity note;
         test_instr_mem_bounds( LW_RANGE_MIN,
                                LW_RANGE_MAX,
                                LW_TEMPLATE );
 
+        assert false
+            report "TEST:   Testing SW bounds."
+            severity note;
         test_instr_mem_bounds( SW_RANGE_MIN,
                                SW_RANGE_MAX,
                                SW_TEMPLATE );
 
+        assert false
+            report "TEST:   Testing ADD bounds."
+            severity note;
         test_instr_mem_bounds( ADD_RANGE_MIN,
                                ADD_RANGE_MAX,
                                ADD_TEMPLATE );
 
+        assert false
+            report "TEST:   Testing BEQ bounds."
+            severity note;
         test_instr_mem_bounds( BEQ_RANGE_MIN,
                                BEQ_RANGE_MAX,
                                BEQ_TEMPLATE );
 
+        assert false
+            report "TEST:   Testing BNE bounds."
+            severity note;
         test_instr_mem_bounds( BNE_RANGE_MIN,
                                BNE_RANGE_MAX,
                                BNE_TEMPLATE );
 
+        assert false
+            report "TEST:   Testing LUI bounds."
+            severity note;
         test_instr_mem_bounds( LUI_RANGE_MIN,
                                LUI_RANGE_MAX,
                                LUI_TEMPLATE );
+
+        assert false
+            report "TEST:   Testing data retention."
+            severity note;
+        test_data_retention( to_signed( rand, WORD_SIZE ),
+                             DATA_RANGE_MIN );
 
         clk_en <= '0';
         wait for CLK_PERIOD;
         
         assert false
-            report "TEST: End of mem_behav tests."
+        report "TEST: End of mem_behav tests."
             severity note;
 
         wait;
