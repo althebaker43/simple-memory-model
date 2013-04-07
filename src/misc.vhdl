@@ -7,19 +7,37 @@ use IEEE.numeric_std.all;
 
 package datapath_types is
 
+    --! Cycle time of global clock
     constant CLK_PERIOD : time := 10 ns;
 
+    --! Size of an address in bits
     constant ADDR_SIZE : positive := 32;
+
+    --! Size of a word in bits
     constant WORD_SIZE : positive := 32;
 
+    --! Size of a word in bytes
+    constant WORD_BYTE_SIZE : positive := WORD_SIZE / 8;
+
+    --! Address subtype
     subtype addr is unsigned( ( ADDR_SIZE - 1 ) downto 0 );
+
+    --! Data word subtype
     subtype word is signed( ( WORD_SIZE - 1 ) downto 0 );
 
+    --! Null value for address
     constant NULL_ADDR    : addr := B"00000000_00000000_00000000_00000000";
+
+    --! Null value for data word
     constant NULL_WORD    : word := B"00000000_00000000_00000000_00000000";
 
+    --! @brief Weak-high value for word
+    --! 
+    --! @details
+    --! The returned value is used to allow data to be read from inout ports
     function WEAK_WORD return word;
 
+    --! Total size of memory in bytes
     constant MEM_SIZE : positive := 1024;
 
     constant LW_TEMPLATE  : word := B"100011_00000_00000_0000000000000000";

@@ -45,27 +45,32 @@ end entity cache;
 --! @li Write-miss scheme is no-write-allocate
 architecture cache_behav of cache is
 
+    --! Natural representation of minimum covered address
     constant MIN_ADDR_NAT : natural := to_integer( min_addr );
 
+    --! Natural representation of maximum covered address
     constant MAX_ADDR_NAT : natural := to_integer( max_addr );
 
     --! Total size of memory in bytes covered by cache
     constant MEM_SIZE : positive := ( MIN_ADDR_NAT - MAX_ADDR_NAT ) + 4;
 
     --! Capacity of cache in words
-    constant NUM_WORDS : positive := cache_size / 4;
+    constant NUM_WORDS : positive := cache_size / WORD_BYTE_SIZE;
+
+    --! Size of one block in words
+    constant BLOCK_WORD_SIZE : positive := 8;
 
     --! Capacity of cache in blocks
-    constant NUM_BLOCKS : positive := NUM_WORDS / 8;
+    constant NUM_BLOCKS : positive := NUM_WORDS / BLOCK_WORD_SIZE;
 
     --! Memory coverage size in bytes for each block
     constant BLOCK_MEM_CVRG : natural := MEM_SIZE / NUM_BLOCKS;
 
     --! Cache block type
-    type cache_block is array( 0 to 7 ) of word;
+    type cache_block is array( 0 to ( BLOCK_WORD_SIZE - 1 ) ) of word;
 
     --! Cache block addresses type
-    type cache_block_addrs is array( 0 to 7 ) of addr;
+    type cache_block_addrs is array( 0 to ( BLOCK_WORD_SIZE - 1 ) ) of addr;
 
     --! Cache block array type
     type block_arr is array( 0 to ( NUM_BLOCKS - 1 ) ) of cache_block;
@@ -339,7 +344,7 @@ begin
 
         begin
 
-            if mem_write_block_word_indx < 8 then
+            if mem_write_block_word_indx < BLOCK_WORD_SIZE then
 
                 get_block_indx( sample_addr,
                                 addr_valid,
@@ -383,7 +388,7 @@ begin
 
         begin
 
-            if mem_read_block_word_indx < 8 then
+            if mem_read_block_word_indx < BLOCK_WORD_SIZE then
 
                 get_block_indx( sample_addr,
                                 addr_valid,
@@ -460,6 +465,7 @@ begin
         if clk = '1' then
 
             -- Currently serving CPU read request
+            cache_operation_branches:
             if cpu_read_operation = true then
 
                 query_cache( cpu_sample_addr,
@@ -470,6 +476,7 @@ begin
                              cpu_sample_data );
 
                 -- Currently writing block into memory
+                cpu_read_operation_branches:
                 if mem_write_operation = true then
 
                     -- Finished waiting for memory to finish write
@@ -518,9 +525,9 @@ begin
 
                     end if;
 
-                end if;
+                end if cpu_read_operation_branches;
 
-
+            -- Currently serving cpu write request
             elsif cpu_write_operation = true then
 
                 query_cache( cpu_sample_addr,
@@ -530,6 +537,7 @@ begin
                              cur_dirty,
                              cpu_sample_data );
 
+                cpu_write_operation_branches:
                 if mem_write_operation = true then
 
                     if mem_ready = '1' then
@@ -545,9 +553,13 @@ begin
 
                     mem_write_operation := true;
 
-                end if;
+                end if cpu_write_operation_branches;
 
             elsif cpu_access = '1' then
+
+                assert( ( to_integer( cpu_addr ) mod 4 ) = 0 )
+                    report "ERROR: Given CPU address not word-aligned."
+                    severity error;
 
                 if cpu_write = '0' then
 
@@ -562,7 +574,13 @@ begin
 
                 end if;
 
-            end if;
+            end if cache_operation_branches;
+
+        -- Pull down status indicators on second half of clock cycle
+        else
+
+            cpu_ready <= '0';
+            mem_access <= '0';
 
         end if;
 
