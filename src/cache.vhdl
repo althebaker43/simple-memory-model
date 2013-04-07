@@ -45,8 +45,12 @@ end entity cache;
 --! @li Write-miss scheme is no-write-allocate
 architecture cache_behav of cache is
 
+    constant MIN_ADDR_NAT : natural := to_integer( min_addr );
+
+    constant MAX_ADDR_NAT : natural := to_integer( max_addr );
+
     --! Total size of memory in bytes covered by cache
-    --constant MEM_SIZE : positive := max_addr - min_addr + 4;
+    constant MEM_SIZE : positive := ( MIN_ADDR_NAT - MAX_ADDR_NAT ) + 4;
 
     --! Capacity of cache in words
     constant NUM_WORDS : positive := cache_size / 4;
@@ -55,7 +59,7 @@ architecture cache_behav of cache is
     constant NUM_BLOCKS : positive := NUM_WORDS / 8;
 
     --! Memory coverage size in bytes for each block
-    constant BLOCK_MEM_CVRG : natural := mem_size / NUM_BLOCKS;
+    constant BLOCK_MEM_CVRG : natural := MEM_SIZE / NUM_BLOCKS;
 
     --! Cache block type
     type cache_block is array( 0 to 7 ) of word;
@@ -98,6 +102,7 @@ begin
         variable cur_dirty : boolean := false;
 
         variable mem_write_block_word_indx : natural := 0;
+        variable mem_read_block_word_indx : natural := 0;
 
         variable mem_sample_data : word;
 
@@ -107,6 +112,10 @@ begin
         variable storage_dirtys : block_dirtys_arr;
 
 
+        --! Gets block index given address
+        --!
+        --! @todo Verify that included calculations use floor-type functions
+        --! for rounding naturals
         procedure get_block_num( sample_addr : in addr;     --!< Input address to look up
                                  valid_addr : out boolean;  --!< Indicates if given address is covered by cache
                                  block_num  : out natural   --!< Block number corresponding to given address (if valid)
@@ -137,6 +146,36 @@ begin
             block_num := abs_addr_nat / BLOCK_MEM_CVRG;
 
         end procedure get_block_num;
+
+
+        --! Gets address given cache block index, address index, and one address included in block
+        --!
+        --! @todo Verify that included calculations use floor-type functions
+        --! for rounding naturals
+        procedure get_block_addr( block_num     : in natural;   --!< Index of block
+                                  incl_addr     : in addr;      --!< Address to be included anywhere within block
+                                  addr_indx     : in natural;   --!< Index of address
+                                  sample_addr   : out addr      --!< Resulting address
+                              ) is
+
+            variable incl_addr_nat : natural;
+            variable min_addr_nat : natural;
+            variable incl_addr_abs_nat : natural;
+            variable mem_block_indx : natural;
+            variable start_addr_nat : natural;
+            variable sample_addr_nat : natural;
+
+        begin
+            
+            incl_addr_nat := to_integer( incl_addr );
+            min_addr_nat := to_integer( min_addr );
+            incl_addr_abs_nat := incl_addr_nat - min_addr_nat;
+            mem_block_indx := incl_addr_abs_nat / 32;
+            start_addr_nat := ( mem_block_indx * 32 ) + min_addr_nat;
+            sample_addr_nat := start_addr_nat + ( addr_indx * 4 );
+            sample_addr := to_unsigned( sample_addr_nat, ADDR_SIZE );
+
+        end procedure get_block_addr;
 
 
         --! Fetch data word at given index within given block
@@ -252,7 +291,7 @@ begin
         end procedure query_cache;
 
 
-        --! Writes block from cache to memory
+        --! Initializes memory-writing operation
         --!
         --! Each call to this procedure writes another word to memory. The
         --! index of the word within the block currently being written is
@@ -295,6 +334,7 @@ begin
 
             else
 
+                mem_write_block_word_indx := 0;
                 mem_write_operation := false;
                 mem_read_operation := true;
 
@@ -303,28 +343,52 @@ begin
         end procedure mem_write_block;
 
 
-        --! Reads block from memory into cache
+        --! Initializes memory-reading operation
         procedure mem_read_block( sample_addr : in addr     --!< Input address to read corresponding block
                                 ) is
 
             variable block_num : natural := 0;
             variable addr_valid : boolean := false;
+            variable read_addr : addr := NULL_ADDR;
 
         begin
 
-            get_block_num( sample_addr,
-                           addr_valid,
-                           block_num );
+            if mem_read_block_word_indx < 8 then
 
+                get_block_num( sample_addr,
+                               addr_valid,
+                               block_num );
+
+                if addr_valid = true then
+
+                    get_block_addr( block_num,
+                                    sample_addr,
+                                    mem_read_block_word_indx,
+                                    read_addr );
+
+                    mem_addr <= read_addr;
+                    mem_data <= WEAK_WORD;
+                    mem_access <= '1';
+                    mem_write <= '0';
+
+                end if;
+
+            else
+
+                mem_read_block_word_indx := 0;
+                mem_read_operation := false;
+
+            end if;
 
         end procedure mem_read_block;
 
 
-        procedure store_data( sample_addr : in addr;
+        procedure store_word( sample_addr : in addr;
                               sample_data : in word ) is
         begin
 
-        end procedure store_data;
+        end procedure store_word;
+
 
     begin
 
@@ -356,6 +420,7 @@ begin
                     -- Finished waiting for memory to finish read
                     if mem_ready = '1' then
 
+                        --store_word
                         mem_read_block( cpu_sample_addr );
 
                     end if;
@@ -403,14 +468,11 @@ begin
 
                     if mem_ready = '1' then
 
-                        mem_write_operation := false;
-                        cpu_write_operation := false;
-
                     end if;
 
                 elsif cur_avbl = true then
 
-                    store_data( cpu_sample_addr, cpu_sample_data );
+                    store_word( cpu_sample_addr, cpu_sample_data );
                     cpu_write_operation := false;
 
                 else
