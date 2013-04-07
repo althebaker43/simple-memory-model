@@ -8,7 +8,11 @@ use IEEE.std_logic_1164.all;
 
 --! @brief Cache entity
 entity cache is
-    port( clk : in std_logic;
+
+    generic( cache_size : positive
+        );
+
+    port( clk           : in std_logic;
     
           cpu_addr      : in addr;
           cpu_data      : inout word;
