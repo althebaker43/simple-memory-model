@@ -20,6 +20,8 @@ package datapath_types is
 
     function WEAK_WORD return word;
 
+    constant MEM_SIZE : positive := 1024;
+
     constant LW_TEMPLATE  : word := B"100011_00000_00000_0000000000000000";
     constant SW_TEMPLATE  : word := B"101011_00000_00000_0000000000000000";
     constant ADD_TEMPLATE : word := B"000000_00000_00000_00000_00000_100000";
