@@ -20,6 +20,8 @@ SECTIONS = cpu \
            mem \
            misc
 
+SOURCES := $(SECTIONS:%=%.vhdl)
+
 SECTION_OBJS := $(SECTIONS:%=%.o)
 
 TEST_OBJS := $(SECTIONS:%=test_%.o)
@@ -85,6 +87,12 @@ $(SECTION_OBJS) : %.o : misc.vhdl \
 
 doc : | $(DOC_DIR)
 	doxygen $(TARGET).doxy
+
+
+ctags : $(SOURCES)
+	ctags \
+		--languages=VHDL \
+		-R $(SRC_DIR) \
 
 
 ## Directory initialization ##

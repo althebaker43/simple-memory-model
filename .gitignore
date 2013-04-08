@@ -2,6 +2,7 @@ work/
 bin/
 docs/
 out/
+tags
 *.lst
 *.swp
 *.ps
