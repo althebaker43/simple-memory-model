@@ -243,15 +243,6 @@ begin
             variable cur_block : cache_block;
 
         begin
-        
-            assert false
-                report "INFO: Querying block by address."
-                severity note;
-
-            present := false;
-            avbl := true;
-            dirty := false;
-            sample_data := NULL_WORD;
 
             if storage_avbls( block_indx ) = '1' then
 
@@ -301,14 +292,6 @@ begin
             variable block_num : natural := 0;
 
         begin
-                    
-            assert false
-                report "INFO: Querying cache."
-                severity note;
-
-            present := false;
-            avbl := true;
-            sample_data := NULL_WORD;
 
             get_block_indx( sample_addr,
                             block_num );
@@ -492,6 +475,10 @@ begin
 
                 -- Block is present within cache
                 elsif cur_present = true then
+                        
+                    assert false
+                        report "INFO: Finished cache read operation."
+                        severity note;
 
                     cpu_data <= cpu_sample_data;
                     cpu_ready <= '1';
@@ -501,6 +488,10 @@ begin
 
                     if cur_avbl = true then
 
+                        assert false
+                            report "INFO: Starting memory read operation."
+                            severity note;
+
                         mem_read_block( cpu_sample_addr );
                         mem_read_operation := true;
 
@@ -508,10 +499,18 @@ begin
 
                         if cur_dirty = false then
 
+                            assert false
+                                report "INFO: Starting memory read operation."
+                                severity note;
+
                             mem_read_block( cpu_sample_addr );
                             mem_read_operation := true;
 
                         else
+
+                            assert false
+                                report "INFO: Starting memory write operation."
+                                severity note;
 
                             mem_write_block( cpu_sample_addr );
                             mem_write_operation := true;
@@ -535,6 +534,10 @@ begin
                 if mem_write_operation = true then
 
                     if mem_ready = '1' then
+
+                        assert false
+                            report "INFO: Finished memory write operation."
+                            severity note;
 
                         mem_write_operation := false;
                         cpu_write_operation := false;
@@ -585,7 +588,7 @@ begin
                     cpu_read_operation := true;
 
                     assert false
-                        report "INFO: Starting read operation."
+                        report "INFO: Starting cache read operation."
                         severity note;
 
                 else
@@ -595,7 +598,7 @@ begin
                     cpu_write_operation := true;
                     
                     assert false
-                        report "INFO: Starting write operation."
+                        report "INFO: Starting cache write operation."
                         severity note;
 
                 end if;

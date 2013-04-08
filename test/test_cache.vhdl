@@ -198,7 +198,7 @@ begin
         wait for CLK_PERIOD;
 
         test_data_retention( to_signed( rand, WORD_SIZE ),
-                             MIN_ADDR );
+                             X"00_00_00_04" );
 
         clk_en <= '0';
         wait for CLK_PERIOD;
