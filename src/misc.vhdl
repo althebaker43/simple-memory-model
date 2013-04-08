@@ -37,6 +37,11 @@ package datapath_types is
     --! The returned value is used to allow data to be read from inout ports
     function WEAK_WORD return word;
 
+    --! @brief Returns the value of a substring of an address
+    function get_addr_substring_value( sample_addr  : in addr;
+                                       start_indx   : in natural;
+                                       num_bits     : in positive ) return natural;
+
     --! Total size of memory in bytes
     constant MEM_SIZE : positive := 1024;
 
@@ -86,6 +91,31 @@ package body datapath_types is
         return weak_word;
 
     end function;
+        
+
+    function get_addr_substring_value( sample_addr  : in addr;
+                                       start_indx   : in natural;
+                                       num_bits     : in positive ) return natural is
+
+        variable mask_addr : addr := NULL_ADDR;
+        variable end_indx : natural := start_indx + num_bits - 1;
+        variable masked_result : addr := NULL_ADDR;
+
+        variable result : natural := 0;
+
+    begin
+
+        for mask_addr_indx in start_indx to end_indx loop
+            mask_addr( mask_addr_indx ) := '1';
+        end loop;
+
+        masked_result := mask_addr and sample_addr;
+
+        result := to_integer( masked_result srl start_indx );
+
+        return result;
+
+    end function get_addr_substring_value;
 
 end package body;
 

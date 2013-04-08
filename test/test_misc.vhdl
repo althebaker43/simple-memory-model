@@ -18,6 +18,10 @@ begin
                   en );
 
     test : process is 
+
+        variable input_addr : addr;
+        variable addr_substring_value : natural := 0;
+
     begin
         
         assert false
@@ -42,6 +46,31 @@ begin
         
         assert false
             report "TEST: End of clk_gen tests."
+            severity note;
+
+
+        assert false
+            report "TEST: Starting get_addr_substring_value tests."
+            severity note;
+
+        input_addr := X"00_00_04_00";
+        addr_substring_value := get_addr_substring_value( input_addr,
+                                                          8,
+                                                          8 );
+        assert( addr_substring_value = 4 )
+            report "TEST: Bad get_addr_substring_value output."
+            severity error;
+
+        input_addr := X"00_11_00_00";
+        addr_substring_value := get_addr_substring_value( input_addr,
+                                                          16,
+                                                          8 );
+        assert( addr_substring_value = 17 )
+            report "TEST: Bad get_addr_substring_value output."
+            severity error;
+
+        assert false
+            report "TEST: End of get_addr_substring_value tests."
             severity note;
 
         wait;
