@@ -69,8 +69,12 @@ architecture cache_behav of cache is
     --! Cache block type
     type cache_block is array( 0 to ( BLOCK_WORD_SIZE - 1 ) ) of word;
 
+    constant NULL_CACHE_BLOCK : cache_block := ( others => NULL_WORD );
+
     --! Cache block addresses type
     type cache_block_addrs is array( 0 to ( BLOCK_WORD_SIZE - 1 ) ) of addr;
+
+    constant NULL_CACHE_BLOCK_ADDRS : cache_block_addrs := ( others => NULL_ADDR );
 
     --! Cache block array type
     type block_arr is array( 0 to ( NUM_BLOCKS - 1 ) ) of cache_block;
@@ -86,10 +90,15 @@ architecture cache_behav of cache is
 
 begin
 
-    cpu_ready <= '0';
-    cpu_data <= WEAK_WORD;
-    mem_data <= WEAK_WORD;
-    hit <= '0';
+    --cpu_data <= WEAK_WORD;
+    --cpu_ready <= '0';
+
+    --mem_addr <= NULL_ADDR;
+    --mem_data <= WEAK_WORD;
+    --mem_access <= '0';
+    --mem_write <= '0';
+
+    --hit <= '0';
 
     operate : process( clk ) is
 
@@ -111,10 +120,10 @@ begin
 
         variable mem_sample_data : word;
 
-        variable storage : block_arr;
-        variable storage_addrs : block_addrs_arr;
-        variable storage_avbls : block_avbls_arr;
-        variable storage_dirtys : block_dirtys_arr;
+        variable storage : block_arr := ( others => NULL_CACHE_BLOCK );
+        variable storage_addrs : block_addrs_arr := ( others => NULL_CACHE_BLOCK_ADDRS );
+        variable storage_avbls : block_avbls_arr := ( others => '1' );
+        variable storage_dirtys : block_dirtys_arr := ( others => '0' );
 
 
         --! @brief Gets cache block index given address
@@ -234,6 +243,10 @@ begin
             variable cur_block : cache_block;
 
         begin
+        
+            assert false
+                report "INFO: Querying block by address."
+                severity note;
 
             present := false;
             avbl := true;
@@ -288,6 +301,10 @@ begin
             variable block_num : natural := 0;
 
         begin
+                    
+            assert false
+                report "INFO: Querying cache."
+                severity note;
 
             present := false;
             avbl := true;
@@ -295,7 +312,6 @@ begin
 
             get_block_indx( sample_addr,
                             block_num );
-
 
             query_block_addr( block_num,
                               sample_addr,
@@ -531,10 +547,14 @@ begin
                     store_word( cpu_sample_addr,
                                 cpu_sample_data,
                                 true );
-                    cpu_write_operation := false;
                     cpu_ready <= '1';
+                    cpu_write_operation := false;
 
                 else
+
+                    assert false
+                        report "INFO: Starting memory write operation."
+                        severity note;
 
                     mem_addr <= cpu_sample_addr;
                     mem_data <= cpu_sample_data;
@@ -545,6 +565,10 @@ begin
                 end if cpu_write_operation_branches;
 
             elsif cpu_access = '1' then
+
+                assert false
+                    report "INFO: Cache access detected."
+                    severity note;
 
                 assert( ( to_integer( cpu_addr ) mod 4 ) = 0 )
                     report "ERROR: Given CPU address not word-aligned."
@@ -560,11 +584,19 @@ begin
                     cpu_sample_addr := cpu_addr;
                     cpu_read_operation := true;
 
+                    assert false
+                        report "INFO: Starting read operation."
+                        severity note;
+
                 else
 
                     cpu_sample_addr := cpu_addr;
                     cpu_sample_data := cpu_data;
                     cpu_write_operation := true;
+                    
+                    assert false
+                        report "INFO: Starting write operation."
+                        severity note;
 
                 end if;
 

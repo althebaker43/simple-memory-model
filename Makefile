@@ -46,6 +46,7 @@ $(RUNS) : run_% : test_% | \
                   $(OUT_DIR) \
                   $(PLOT_DIR)
 	./$(BIN_DIR)/$(notdir $<) \
+		--assert-level=warning \
 		--vcd=$(OUT_DIR)/$@.vcd
 
 $(TEST_BINS) : test_% : test_%.o | \

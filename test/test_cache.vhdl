@@ -87,7 +87,7 @@ begin
             wait for ( CLK_PERIOD / 2 );
 
             cpu_addr <= NULL_ADDR;
-            cpu_data <= NULL_WORD;
+            cpu_data <= WEAK_WORD;
             cpu_access <= '0';
             cpu_write <= '0';
 
@@ -128,55 +128,55 @@ begin
 
             wait for CLK_PERIOD;
 
-            cpu_addr <= sample_addr;
-            cpu_data <= WEAK_WORD;
-            cpu_write <= '0';
-            wait for ( CLK_PERIOD / 2 );
+            --cpu_addr <= sample_addr;
+            --cpu_data <= WEAK_WORD;
+            --cpu_write <= '0';
+            --wait for ( CLK_PERIOD / 2 );
 
-            cpu_addr <= NULL_ADDR;
-            cpu_data <= WEAK_WORD;
-            cpu_access <= '0';
-            cpu_write <= '0';
+            --cpu_addr <= NULL_ADDR;
+            --cpu_data <= WEAK_WORD;
+            --cpu_access <= '0';
+            --cpu_write <= '0';
 
-            while cpu_ready = '0' loop
-            
-                wait on cpu_ready, mem_access;
+            --while cpu_ready = '0' loop
+            --
+            --    wait on cpu_ready, mem_access;
 
-                if mem_access = '1' then
-                        
-                    mem_data_indx := to_integer( mem_addr srl 2 );
+            --    if mem_access = '1' then
+            --            
+            --        mem_data_indx := to_integer( mem_addr srl 2 );
 
-                    if mem_write = '1' then
+            --        if mem_write = '1' then
 
-                        mem_data_sample := mem_data;
+            --            mem_data_sample := mem_data;
 
-                        wait for ( ( MEM_WRITE_ACCESS_DELAY + MEM_WRITE_ACCESS_DELAY ) * CLK_PERIOD );
+            --            wait for ( ( MEM_WRITE_ACCESS_DELAY + MEM_WRITE_ACCESS_DELAY ) * CLK_PERIOD );
 
-                        mem_storage( mem_data_indx ) := mem_data;
-                        mem_ready <= '1';
-                        wait for ( CLK_PERIOD / 2 );
+            --            mem_storage( mem_data_indx ) := mem_data;
+            --            mem_ready <= '1';
+            --            wait for ( CLK_PERIOD / 2 );
 
-                        mem_ready <= '0';
+            --            mem_ready <= '0';
 
-                    else
+            --        else
 
-                        wait for ( ( MEM_READ_ACCESS_DELAY + MEM_READ_ACCESS_DELAY ) * CLK_PERIOD );
-                        mem_data <= mem_storage( mem_data_indx );
-                        mem_ready <= '1';
-                        wait for ( CLK_PERIOD / 2 );
+            --            wait for ( ( MEM_READ_ACCESS_DELAY + MEM_READ_ACCESS_DELAY ) * CLK_PERIOD );
+            --            mem_data <= mem_storage( mem_data_indx );
+            --            mem_ready <= '1';
+            --            wait for ( CLK_PERIOD / 2 );
 
-                        mem_ready <= '0';
+            --            mem_ready <= '0';
 
-                    end if;
+            --        end if;
 
-                end if;
+            --    end if;
 
-            end loop;
+            --end loop;
 
-            assert( cpu_data = sample_data )
-                report "ERROR: Bad cpu cache output."
-                severity error;
-            wait for CLK_PERIOD;
+            --assert( cpu_data = sample_data )
+            --    report "ERROR: Bad cpu cache output."
+            --    severity error;
+            --wait for CLK_PERIOD;
 
         end procedure;
 
@@ -187,13 +187,11 @@ begin
             severity note;
 
         cpu_addr <= NULL_ADDR;
-        cpu_data <= NULL_WORD;
+        cpu_data <= WEAK_WORD;
         cpu_access <= '0';
         cpu_write <= '0';
-        mem_addr <= NULL_ADDR;
-        mem_data <= NULL_WORD;
-        mem_access <= '0';
-        mem_write <= '0';
+        mem_data <= WEAK_WORD;
+        mem_ready <= '0';
         wait for CLK_PERIOD;
 
         clk_en <= '1';
