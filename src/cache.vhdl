@@ -101,7 +101,6 @@ begin
         variable cpu_sample_addr : addr;
         variable cpu_sample_data : word;
 
-        variable cur_valid : boolean := false;
         variable cur_present : boolean := false;
         variable cur_avbl : boolean := false;
         variable cur_dirty : boolean := false;
@@ -121,37 +120,22 @@ begin
         --! @brief Gets cache block index given address
         --!
         --! @param sample_addr Input address to look up
-        --! @param valid_addr Indicates if given address is covered by cache
-        --! @param block_indx Block number corresponding to given address (if valid)
+        --! @param block_indx Block number corresponding to given address
         --! 
+        --! @todo Rename to get_cache_block_indx
+        --! @todo Convert caclulations to bitwise
         --! @todo Verify that included calculations use floor-type functions
         --! for rounding naturals
         procedure get_block_indx( sample_addr   : in addr;
-                                  valid_addr    : out boolean;
                                   block_indx    : out natural ) is
             
             variable sample_addr_nat : natural;
-            variable min_addr_nat : natural;
-            variable max_addr_nat : natural;
             variable abs_addr_nat  : natural;
 
         begin
 
-            valid_addr := false;
-            block_indx := 0;
-
             sample_addr_nat := to_integer( sample_addr );
-            min_addr_nat := to_integer( min_addr );
-            max_addr_nat := to_integer( max_addr );
-
-            if( ( sample_addr_nat >= min_addr_nat ) and
-                ( sample_addr_nat <= max_addr_nat ) ) then
-                    
-                valid_addr := true;
-
-            end if;
-
-            abs_addr_nat := sample_addr_nat - min_addr_nat;
+            abs_addr_nat := sample_addr_nat - MIN_ADDR_NAT;
             block_indx := abs_addr_nat / BLOCK_MEM_CVRG;
 
         end procedure get_block_indx;
@@ -165,6 +149,7 @@ begin
         --! @param addr_indx Index of address
         --! @param Resulting address
         --! 
+        --! @todo Convert calculations to bitwise
         --! @todo Double-check math
         --! @todo Verify that included calculations use floor-type functions
         --! for rounding naturals
@@ -174,7 +159,6 @@ begin
                                   sample_addr   : out addr ) is
 
             variable incl_addr_nat : natural;
-            variable min_addr_nat : natural;
             variable incl_addr_abs_nat : natural;
             variable mem_block_indx : natural;
             variable start_addr_nat : natural;
@@ -183,11 +167,20 @@ begin
         begin
             
             incl_addr_nat := to_integer( incl_addr );
-            min_addr_nat := to_integer( min_addr );
-            incl_addr_abs_nat := incl_addr_nat - min_addr_nat;
+            incl_addr_abs_nat := incl_addr_nat - MIN_ADDR_NAT;
             mem_block_indx := incl_addr_abs_nat / 32;
-            start_addr_nat := ( mem_block_indx * 32 ) + min_addr_nat;
+            start_addr_nat := ( mem_block_indx * 32 ) + MIN_ADDR_NAT;
             sample_addr_nat := start_addr_nat + ( addr_indx * 4 );
+
+            assert( ( sample_addr_nat mod 4 ) = 0 )
+                report "ERROR: Given CPU address not word-aligned."
+                severity error;
+
+            assert( ( sample_addr_nat >= MIN_ADDR_NAT ) and
+                    ( sample_addr_nat <= MAX_ADDR_NAT ) )
+                report "ERROR: Given CPU address not within memory bounds."
+                severity error;
+            
             sample_addr := to_unsigned( sample_addr_nat, ADDR_SIZE );
 
         end procedure get_block_addr;
@@ -282,44 +275,34 @@ begin
         --! address
         --!
         --! @param sample_addr Input address to look up
-        --! @param valid Indicates if given address is covered by cache
         --! @param present Indicates if address is present within cache
         --! @param avbl Indicates if corresponding block is available
         --! @param dirty Indicates if corresponding block is dirty
         --! @param sample_data Data at address (if address if present)
         procedure query_cache( sample_addr  : in addr;
-                               valid        : out boolean;
                                present      : out boolean;
                                avbl         : out boolean;
                                dirty        : out boolean;
                                sample_data  : out word ) is
 
-            variable addr_valid : boolean := false;
             variable block_num : natural := 0;
 
         begin
 
             present := false;
-            valid := false;
             avbl := true;
             sample_data := NULL_WORD;
 
             get_block_indx( sample_addr,
-                            addr_valid,
                             block_num );
 
-            if addr_valid = true then 
 
-                valid := true;
-
-                query_block_addr( block_num,
-                                  sample_addr,
-                                  present,
-                                  avbl,
-                                  dirty,
-                                  sample_data );
-
-            end if;
+            query_block_addr( block_num,
+                              sample_addr,
+                              present,
+                              avbl,
+                              dirty,
+                              sample_data );
 
         end procedure query_cache;
 
@@ -338,7 +321,6 @@ begin
         procedure mem_write_block( sample_addr : in addr ) is
 
             variable block_num : natural := 0;
-            variable addr_valid : boolean := false;
             variable write_addr : addr := NULL_ADDR;
             variable write_data : word := NULL_WORD;
 
@@ -347,24 +329,19 @@ begin
             if mem_write_block_word_indx < BLOCK_WORD_SIZE then
 
                 get_block_indx( sample_addr,
-                                addr_valid,
                                 block_num );
 
-                if addr_valid = true then
+                query_block_indx( block_num,
+                                  mem_write_block_word_indx,
+                                  write_addr,
+                                  write_data );
 
-                    query_block_indx( block_num,
-                                      mem_write_block_word_indx,
-                                      write_addr,
-                                      write_data );
+                mem_write_block_word_indx := mem_write_block_word_indx + 1;
 
-                    mem_write_block_word_indx := mem_write_block_word_indx + 1;
-
-                    mem_addr <= write_addr;
-                    mem_data <= write_data;
-                    mem_access <= '1';
-                    mem_write <= '1';
-
-                end if;
+                mem_addr <= write_addr;
+                mem_data <= write_data;
+                mem_access <= '1';
+                mem_write <= '1';
 
             else
 
@@ -383,7 +360,6 @@ begin
         procedure mem_read_block( sample_addr : in addr ) is
 
             variable block_num : natural := 0;
-            variable addr_valid : boolean := false;
             variable read_addr : addr := NULL_ADDR;
 
         begin
@@ -391,25 +367,20 @@ begin
             if mem_read_block_word_indx < BLOCK_WORD_SIZE then
 
                 get_block_indx( sample_addr,
-                                addr_valid,
                                 block_num );
 
-                if addr_valid = true then
+                get_block_addr( block_num,
+                                sample_addr,
+                                mem_read_block_word_indx,
+                                read_addr );
 
-                    get_block_addr( block_num,
-                                    sample_addr,
-                                    mem_read_block_word_indx,
-                                    read_addr );
+                mem_read_block_word_indx := mem_read_block_word_indx + 1;
+                mem_read_block_addr := read_addr;
 
-                    mem_read_block_word_indx := mem_read_block_word_indx + 1;
-                    mem_read_block_addr := read_addr;
-
-                    mem_addr <= read_addr;
-                    mem_data <= WEAK_WORD;
-                    mem_access <= '1';
-                    mem_write <= '0';
-
-                end if;
+                mem_addr <= read_addr;
+                mem_data <= WEAK_WORD;
+                mem_access <= '1';
+                mem_write <= '0';
 
             else
 
@@ -425,13 +396,15 @@ begin
         --!
         --! @param sample_addr Address to store data at
         --! @param sample_data Data to store
+        --! @param set_dirty Set dirty bit for block
+        --!
+        --! @todo Convert calculations to bitwise
         procedure store_word( sample_addr : in addr;
-                              sample_data : in word ) is
+                              sample_data : in word;
+                              set_dirty   : in boolean ) is
             
-            variable valid_addr : boolean;
             variable block_num : natural;
             variable sample_addr_nat : natural;
-            variable min_addr_nat : natural;
             variable sample_addr_abs_nat : natural;
             variable sample_addr_block_abs_nat : natural;
             variable sample_addr_indx : natural;
@@ -442,18 +415,21 @@ begin
         begin
 
             get_block_indx( sample_addr,
-                            valid_addr,
                             block_num );
 
             cur_block := storage( block_num );
             cur_block_addrs := storage_addrs( block_num );
-            
+            storage_avbls( block_num ) := '0';
+            if set_dirty = true then
+                storage_dirtys( block_num ) := '1';
+            else
+                storage_dirtys( block_num ) := '0';
+            end if;
+
             sample_addr_nat := to_integer( sample_addr );
-            min_addr_nat := to_integer( min_addr );
-            sample_addr_abs_nat := sample_addr_nat - min_addr_nat;
+            sample_addr_abs_nat := sample_addr_nat - MIN_ADDR_NAT;
             sample_addr_block_abs_nat := sample_addr_abs_nat mod 32;
             sample_addr_indx := sample_addr_block_abs_nat / 4;
-
             cur_block( sample_addr_indx ) := sample_data;
             cur_block_addrs( sample_addr_indx ) := sample_addr;
 
@@ -469,7 +445,6 @@ begin
             if cpu_read_operation = true then
 
                 query_cache( cpu_sample_addr,
-                             cur_valid,
                              cur_present,
                              cur_avbl,
                              cur_dirty,
@@ -493,7 +468,8 @@ begin
                     if mem_ready = '1' then
 
                         store_word( mem_read_block_addr,
-                                    mem_data );
+                                    mem_data,
+                                    false );
                         mem_read_block( cpu_sample_addr );
 
                     end if;
@@ -509,16 +485,19 @@ begin
 
                     if cur_avbl = true then
 
+                        mem_read_block( cpu_sample_addr );
                         mem_read_operation := true;
 
                     else
 
                         if cur_dirty = false then
 
+                            mem_read_block( cpu_sample_addr );
                             mem_read_operation := true;
 
                         else
 
+                            mem_write_block( cpu_sample_addr );
                             mem_write_operation := true;
 
                         end if;
@@ -531,7 +510,6 @@ begin
             elsif cpu_write_operation = true then
 
                 query_cache( cpu_sample_addr,
-                             cur_valid,
                              cur_present,
                              cur_avbl,
                              cur_dirty,
@@ -542,15 +520,26 @@ begin
 
                     if mem_ready = '1' then
 
+                        mem_write_operation := false;
+                        cpu_write_operation := false;
+                        cpu_ready <= '1';
+
                     end if;
 
-                elsif cur_avbl = true then
+                elsif cur_present = true then
 
-                    store_word( cpu_sample_addr, cpu_sample_data );
+                    store_word( cpu_sample_addr,
+                                cpu_sample_data,
+                                true );
                     cpu_write_operation := false;
+                    cpu_ready <= '1';
 
                 else
 
+                    mem_addr <= cpu_sample_addr;
+                    mem_data <= cpu_sample_data;
+                    mem_access <= '1';
+                    mem_write <= '1';
                     mem_write_operation := true;
 
                 end if cpu_write_operation_branches;
@@ -559,6 +548,11 @@ begin
 
                 assert( ( to_integer( cpu_addr ) mod 4 ) = 0 )
                     report "ERROR: Given CPU address not word-aligned."
+                    severity error;
+
+                assert( ( to_integer( cpu_addr ) >= MIN_ADDR_NAT ) and
+                        ( to_integer( cpu_addr ) <= MAX_ADDR_NAT ) )
+                    report "ERROR: Given CPU address not within memory bounds."
                     severity error;
 
                 if cpu_write = '0' then
@@ -579,7 +573,9 @@ begin
         -- Pull down status indicators on second half of clock cycle
         else
 
+            cpu_data <= WEAK_WORD;
             cpu_ready <= '0';
+            mem_data <= WEAK_WORD;
             mem_access <= '0';
 
         end if;

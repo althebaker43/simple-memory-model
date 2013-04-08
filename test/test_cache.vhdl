@@ -16,6 +16,8 @@ end entity test_cache;
 architecture test_cache_arch of test_cache is
 
     constant CACHE_SIZE : positive := 128;
+    constant MIN_ADDR : addr := X"00_00_00_00";
+    constant MAX_ADDR : addr := X"00_00_00_7C";
 
     constant MEM_SIZE : positive := 1024;
     constant MEM_WORD_SIZE : positive := ( MEM_SIZE / 4 );
@@ -51,7 +53,9 @@ begin
                   clk_en );
 
     cache_ent : entity work.cache( cache_behav )
-        generic map( CACHE_SIZE )
+        generic map( CACHE_SIZE,
+                     MIN_ADDR,
+                     MAX_ADDR )
         port map( clk,
                   cpu_addr,
                   cpu_data,
@@ -67,8 +71,8 @@ begin
 
     test : process is
 
-        variable mem_data_pos : integer;
-        variable mem_data_input : word;
+        variable mem_data_indx : integer;
+        variable mem_data_sample : word;
 
         variable mem_storage : storage;
 
@@ -92,20 +96,29 @@ begin
                 wait on cpu_ready, mem_access;
 
                 if mem_access = '1' then
-                        
-                    mem_data_pos := to_integer( mem_addr srl 2 );
+
+                    mem_data_indx := to_integer( mem_addr srl 2 );
 
                     if mem_write = '1' then
+                        
+                        mem_data_sample := mem_data;
 
                         wait for ( ( MEM_WRITE_ACCESS_DELAY + MEM_WRITE_ACCESS_DELAY ) * CLK_PERIOD );
-                        mem_storage( mem_data_pos ) := mem_data;
+
+                        mem_storage( mem_data_indx ) := mem_data_sample;
                         mem_ready <= '1';
+                        wait for ( CLK_PERIOD / 2 );
+
+                        mem_ready <= '0';
 
                     else
 
                         wait for ( ( MEM_READ_ACCESS_DELAY + MEM_READ_ACCESS_DELAY ) * CLK_PERIOD );
-                        mem_data <= mem_storage( mem_data_pos );
+                        mem_data <= mem_storage( mem_data_indx );
                         mem_ready <= '1';
+                        wait for ( CLK_PERIOD / 2 );
+
+                        mem_ready <= '0';
 
                     end if;
 
@@ -131,19 +144,28 @@ begin
 
                 if mem_access = '1' then
                         
-                    mem_data_pos := to_integer( mem_addr srl 2 );
+                    mem_data_indx := to_integer( mem_addr srl 2 );
 
                     if mem_write = '1' then
 
+                        mem_data_sample := mem_data;
+
                         wait for ( ( MEM_WRITE_ACCESS_DELAY + MEM_WRITE_ACCESS_DELAY ) * CLK_PERIOD );
-                        mem_storage( mem_data_pos ) := mem_data;
+
+                        mem_storage( mem_data_indx ) := mem_data;
                         mem_ready <= '1';
+                        wait for ( CLK_PERIOD / 2 );
+
+                        mem_ready <= '0';
 
                     else
 
                         wait for ( ( MEM_READ_ACCESS_DELAY + MEM_READ_ACCESS_DELAY ) * CLK_PERIOD );
-                        mem_data <= mem_storage( mem_data_pos );
+                        mem_data <= mem_storage( mem_data_indx );
                         mem_ready <= '1';
+                        wait for ( CLK_PERIOD / 2 );
+
+                        mem_ready <= '0';
 
                     end if;
 
@@ -177,6 +199,8 @@ begin
         clk_en <= '1';
         wait for CLK_PERIOD;
 
+        test_data_retention( to_signed( rand, WORD_SIZE ),
+                             MIN_ADDR );
 
         clk_en <= '0';
         wait for CLK_PERIOD;
