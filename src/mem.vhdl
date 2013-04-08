@@ -119,8 +119,8 @@ begin
 
             end if;
 
-            rs := ( to_signed( rand, WORD_SIZE ) sll INSTR_RS_POS ) and INSTR_RS_MASK;
-            rt := ( to_signed( rand, WORD_SIZE ) sll INSTR_RT_POS ) and INSTR_RT_MASK;
+            --rs := ( to_signed( rand, WORD_SIZE ) sll INSTR_RS_POS ) and INSTR_RS_MASK;
+            --rt := ( to_signed( rand, WORD_SIZE ) sll INSTR_RT_POS ) and INSTR_RT_MASK;
 
             random_instr := random_instr or template;
             random_instr := random_instr or rs;

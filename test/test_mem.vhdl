@@ -221,7 +221,7 @@ begin
         assert false
             report "TEST:   Testing data retention."
             severity note;
-        test_data_retention( to_signed( rand, WORD_SIZE ),
+        test_data_retention( X"55_55_55_55",
                              DATA_RANGE_MIN );
 
         clk_en <= '0';

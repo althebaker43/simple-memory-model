@@ -52,7 +52,7 @@ architecture cache_behav of cache is
     constant MAX_ADDR_NAT : natural := to_integer( max_addr );
 
     --! Total size of memory in bytes covered by cache
-    constant MEM_SIZE : positive := ( MIN_ADDR_NAT - MAX_ADDR_NAT ) + 4;
+    constant MEM_SIZE : positive := ( MAX_ADDR_NAT - MIN_ADDR_NAT ) + 4;
 
     --! Capacity of cache in words
     constant NUM_WORDS : positive := cache_size / WORD_BYTE_SIZE;
@@ -155,7 +155,7 @@ begin
 
 
             addr_indx_mask := to_unsigned( BLOCK_BYTE_SIZE - 1, ADDR_SIZE );
-            addr_indx := to_integer( ( addr_indx_mask and sample_addr ) srl 4 );
+            addr_indx := to_integer( ( addr_indx_mask and sample_addr ) srl 2 );
 
         end procedure get_cache_location;
 
@@ -432,6 +432,9 @@ begin
 
                 cur_block( addr_indx ) := sample_data;
                 cur_block_addrs( addr_indx ) := sample_addr;
+                
+                storage( block_indx ) := cur_block;
+                storage_addrs( block_indx ) := cur_block_addrs;
 
             end if;
 

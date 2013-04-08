@@ -222,7 +222,7 @@ begin
         clk_en <= '1';
         wait for CLK_PERIOD;
 
-        test_data_retention( to_signed( rand, WORD_SIZE ),
+        test_data_retention( X"55_55_55_55",
                              X"00_00_00_04" );
 
         clk_en <= '0';

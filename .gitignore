@@ -3,8 +3,12 @@ bin/
 docs/
 out/
 tags
+transcript
 *.lst
 *.swp
 *.ps
 *.pdf
 *.gtkw
+*.bak
+*.mti
+*.wlf
