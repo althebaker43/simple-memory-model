@@ -104,8 +104,11 @@ begin
 
         variable cpu_read_operation : boolean := false;
         variable cpu_write_operation : boolean := false;
+        
         variable mem_read_operation : boolean := false;
+        variable mem_read_in_progress : boolean := false;
         variable mem_write_operation : boolean := false;
+        variable mem_write_in_progress : boolean := false;
 
         variable cpu_sample_addr : addr;
         variable cpu_sample_data : word;
@@ -327,6 +330,10 @@ begin
 
             if mem_write_block_word_indx < BLOCK_WORD_SIZE then
 
+                assert false
+                    report "INFO: Writing word to memory."
+                    severity note;
+
                 get_block_indx( sample_addr,
                                 block_num );
 
@@ -342,7 +349,13 @@ begin
                 mem_access <= '1';
                 mem_write <= '1';
 
+                mem_write_in_progress := true;
+
             else
+                
+                assert false
+                    report "INFO: Finished writing block to memory."
+                    severity note;
 
                 mem_write_block_word_indx := 0;
                 mem_write_operation := false;
@@ -365,6 +378,10 @@ begin
 
             if mem_read_block_word_indx < BLOCK_WORD_SIZE then
 
+                assert false
+                    report "INFO: Reading word from memory."
+                    severity note;
+
                 get_block_indx( sample_addr,
                                 block_num );
 
@@ -381,10 +398,16 @@ begin
                 mem_access <= '1';
                 mem_write <= '0';
 
+                mem_read_in_progress := true;
+
             else
 
                 mem_read_block_word_indx := 0;
                 mem_read_operation := false;
+
+                assert false
+                    report "INFO: Finished reading block from memory."
+                    severity note;
 
             end if;
 
@@ -456,6 +479,14 @@ begin
                     -- Finished waiting for memory to finish write
                     if mem_ready = '1' then
 
+                        assert false
+                            report "INFO: Finished writing word to memory."
+                            severity note;
+
+                        mem_write_in_progress := false;
+
+                    elsif mem_write_in_progress = false then
+
                         mem_write_block( cpu_sample_addr );
 
                     end if;
@@ -466,9 +497,18 @@ begin
                     -- Finished waiting for memory to finish read
                     if mem_ready = '1' then
 
+                        assert false
+                            report "INFO: Finished reading word from memory."
+                            severity note;
+
                         store_word( mem_read_block_addr,
                                     mem_data,
                                     false );
+
+                        mem_read_in_progress := false;
+
+                    elsif mem_read_in_progress = false then
+
                         mem_read_block( cpu_sample_addr );
 
                     end if;
