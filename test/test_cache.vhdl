@@ -74,7 +74,7 @@ begin
         variable mem_data_indx : integer;
         variable mem_data_sample : word;
 
-        variable mem_storage : storage;
+        variable mem_storage : storage := ( others => NULL_WORD );
 
         procedure test_data_retention( sample_data  : in word;
                                        sample_addr  : in addr ) is

@@ -57,8 +57,10 @@ architecture cache_behav of cache is
     --! Capacity of cache in words
     constant NUM_WORDS : positive := cache_size / WORD_BYTE_SIZE;
 
+    constant BLOCK_BYTE_SIZE : positive := 32;
+
     --! Size of one block in words
-    constant BLOCK_WORD_SIZE : positive := 8;
+    constant BLOCK_WORD_SIZE : positive := BLOCK_BYTE_SIZE / WORD_BYTE_SIZE;
 
     --! Capacity of cache in blocks
     constant NUM_BLOCKS : positive := NUM_WORDS / BLOCK_WORD_SIZE;
@@ -113,9 +115,12 @@ begin
         variable cpu_sample_addr : addr;
         variable cpu_sample_data : word;
 
+        variable cur_block_indx : natural := 0;
+        variable cur_addr_indx : natural := 0;
         variable cur_present : boolean := false;
         variable cur_avbl : boolean := false;
         variable cur_dirty : boolean := false;
+        variable cur_data : word := NULL_WORD;
 
         variable mem_write_block_word_indx : natural := 0;
         variable mem_read_block_word_indx : natural := 0;
@@ -132,57 +137,56 @@ begin
         --! @brief Gets cache block index given address
         --!
         --! @param sample_addr Input address to look up
-        --! @param block_indx Block number corresponding to given address
+        --! @param block_indx Index of block within cache
+        --! @param word_indx Index of address within block
         --! 
-        --! @todo Rename to get_cache_block_indx
-        --! @todo Convert caclulations to bitwise
-        --! @todo Verify that included calculations use floor-type functions
-        --! for rounding naturals
-        procedure get_block_indx( sample_addr   : in addr;
-                                  block_indx    : out natural ) is
-            
-            variable sample_addr_nat : natural;
-            variable abs_addr_nat  : natural;
+        --! @todo Get rid of magic numbers
+        procedure get_cache_location( sample_addr   : in addr;
+                                      block_indx    : out natural;
+                                      addr_indx     : out natural ) is
+
+            variable block_indx_mask : addr;
+            variable addr_indx_mask : addr;
 
         begin
 
-            sample_addr_nat := to_integer( sample_addr );
-            abs_addr_nat := sample_addr_nat - MIN_ADDR_NAT;
-            block_indx := abs_addr_nat / BLOCK_MEM_CVRG;
-
-        end procedure get_block_indx;
+            block_indx_mask := to_unsigned( cache_size - 1, ADDR_SIZE );
+            block_indx := to_integer( ( block_indx_mask and sample_addr ) srl 8 );
 
 
-        --! @brief Gets address given cache block index, address index, and one
+            addr_indx_mask := to_unsigned( BLOCK_BYTE_SIZE - 1, ADDR_SIZE );
+            addr_indx := to_integer( ( addr_indx_mask and sample_addr ) srl 4 );
+
+        end procedure get_cache_location;
+
+
+        --! @brief Gets memory address given address index and one
         --! address included in block
         --!
-        --! @param block_indx Index of block
         --! @param incl_addr Address to be included anywhere within block
         --! @param addr_indx Index of address
         --! @param Resulting address
         --! 
-        --! @todo Convert calculations to bitwise
         --! @todo Double-check math
-        --! @todo Verify that included calculations use floor-type functions
-        --! for rounding naturals
-        procedure get_block_addr( block_indx    : in natural;
-                                  incl_addr     : in addr;
+        procedure get_block_addr( incl_addr     : in addr;
                                   addr_indx     : in natural;
                                   sample_addr   : out addr ) is
 
-            variable incl_addr_nat : natural;
-            variable incl_addr_abs_nat : natural;
-            variable mem_block_indx : natural;
+            variable start_addr_mask : addr;
             variable start_addr_nat : natural;
             variable sample_addr_nat : natural;
 
         begin
             
-            incl_addr_nat := to_integer( incl_addr );
-            incl_addr_abs_nat := incl_addr_nat - MIN_ADDR_NAT;
-            mem_block_indx := incl_addr_abs_nat / 32;
-            start_addr_nat := ( mem_block_indx * 32 ) + MIN_ADDR_NAT;
-            sample_addr_nat := start_addr_nat + ( addr_indx * 4 );
+            --incl_addr_nat := to_integer( incl_addr );
+            --incl_addr_abs_nat := incl_addr_nat - MIN_ADDR_NAT;
+            --mem_block_indx := incl_addr_abs_nat / 32;
+            --start_addr_nat := ( mem_block_indx * 32 ) + MIN_ADDR_NAT;
+            --sample_addr_nat := start_addr_nat + ( addr_indx * 4 );
+
+            start_addr_mask := not to_unsigned( BLOCK_BYTE_SIZE - 1, ADDR_SIZE );
+            start_addr_nat := to_integer( start_addr_mask and incl_addr );
+            sample_addr_nat := start_addr_nat + ( addr_indx * WORD_BYTE_SIZE );
 
             assert( ( sample_addr_nat mod 4 ) = 0 )
                 report "ERROR: Given CPU address not word-aligned."
@@ -205,7 +209,9 @@ begin
         --! @param sample_addr Address at index
         --! @param sample_data Data at index
         procedure query_block_indx( block_indx  : in natural;
-                                    word_indx   : in natural;
+                                    addr_indx   : in natural;
+                                    avbl        : out boolean;
+                                    dirty       : out boolean;
                                     sample_addr : out addr;
                                     sample_data : out word ) is
             
@@ -214,68 +220,25 @@ begin
 
         begin
 
-            sample_addr := NULL_ADDR;
-            sample_data := NULL_WORD;
-
             cur_block_addrs := storage_addrs( block_indx );
             cur_block := storage( block_indx );
 
-            sample_addr := cur_block_addrs( word_indx );
-            sample_data := cur_block( word_indx );
-
-        end procedure query_block_indx;
-
-
-        --! @brief Attempt to fetch data within block given address and block
-        --! attributes
-        --!
-        --! @param block_indx Index of block within cache to search within
-        --! @param sample_addr Input address to look up within block
-        --! @param present Indicates if given address is present within block
-        --! @param avbl Indicates if given block index is available
-        --! @param dirty Indicates if given block is dirty or not
-        --! @param sample_data Data at address (if address if present)
-        procedure query_block_addr( block_indx  : in natural;
-                                    sample_addr : in addr;
-                                    present     : out boolean;
-                                    avbl        : out boolean;
-                                    dirty       : out boolean;
-                                    sample_data : out word ) is
-            
-            variable cur_block_addrs : cache_block_addrs;
-            variable cur_block : cache_block;
-
-        begin
-
             if storage_avbls( block_indx ) = '1' then
-
                 avbl := true;
-
             else
-
-                if storage_dirtys( block_indx ) = '1' then
-
-                    dirty := true;
-
-                end if;
-
-                cur_block_addrs := storage_addrs( block_indx );
-                cur_block := storage( block_indx );
-
-                for block_addr_indx in cur_block_addrs'range loop
-
-                    if sample_addr = cur_block_addrs( block_addr_indx ) then
-
-                        present := true;
-                        sample_data := cur_block( block_addr_indx );
-
-                    end if;
-
-                end loop;
-
+                avbl := false;
             end if;
 
-        end procedure query_block_addr;
+            if storage_dirtys( block_indx ) = '1' then
+                dirty := true;
+            else
+                dirty := false;
+            end if;
+
+            sample_addr := cur_block_addrs( addr_indx );
+            sample_data := cur_block( addr_indx );
+
+        end procedure query_block_indx;
 
 
         --! @brief Fetches data and block attributes corresponding to given
@@ -287,24 +250,43 @@ begin
         --! @param dirty Indicates if corresponding block is dirty
         --! @param sample_data Data at address (if address if present)
         procedure query_cache( sample_addr  : in addr;
+                               block_indx   : out natural;
+                               addr_indx    : out natural;
                                present      : out boolean;
                                avbl         : out boolean;
                                dirty        : out boolean;
                                sample_data  : out word ) is
 
-            variable block_num : natural := 0;
+            variable sample_block_indx : natural := 0;
+            variable sample_addr_indx : natural := 0;
+            variable present_addr : addr;
+            variable present_data : word;
 
         begin
+            
+            assert false
+                report "INFO: Querying cache."
+                severity note;
 
-            get_block_indx( sample_addr,
-                            block_num );
+            get_cache_location( sample_addr,
+                                sample_block_indx,
+                                sample_addr_indx );
 
-            query_block_addr( block_num,
-                              sample_addr,
-                              present,
+            block_indx := sample_block_indx;
+            addr_indx := sample_addr_indx;
+
+            query_block_indx( sample_block_indx,
+                              sample_addr_indx,
                               avbl,
                               dirty,
+                              present_addr,
                               sample_data );
+
+            if present_addr = sample_addr then
+                present := true;
+            else
+                present := false;
+            end if;
 
         end procedure query_cache;
 
@@ -320,9 +302,10 @@ begin
         --! true to begin the reading operation into the same block.
         --!
         --! @param sample_addr Input address to write corresponding block
-        procedure mem_write_block( sample_addr : in addr ) is
+        procedure mem_write_block( block_indx : in natural ) is
 
-            variable block_num : natural := 0;
+            variable write_avbl : boolean;
+            variable write_dirty : boolean;
             variable write_addr : addr := NULL_ADDR;
             variable write_data : word := NULL_WORD;
 
@@ -334,11 +317,10 @@ begin
                     report "INFO: Writing word to memory."
                     severity note;
 
-                get_block_indx( sample_addr,
-                                block_num );
-
-                query_block_indx( block_num,
+                query_block_indx( block_indx,
                                   mem_write_block_word_indx,
+                                  write_avbl,
+                                  write_dirty,
                                   write_addr,
                                   write_data );
 
@@ -372,7 +354,6 @@ begin
         procedure mem_read_block( sample_addr : in addr ) is
 
             variable block_num : natural := 0;
-            variable read_addr : addr := NULL_ADDR;
 
         begin
 
@@ -382,18 +363,13 @@ begin
                     report "INFO: Reading word from memory."
                     severity note;
 
-                get_block_indx( sample_addr,
-                                block_num );
-
-                get_block_addr( block_num,
-                                sample_addr,
+                get_block_addr( sample_addr,
                                 mem_read_block_word_indx,
-                                read_addr );
+                                mem_read_block_addr );
 
                 mem_read_block_word_indx := mem_read_block_word_indx + 1;
-                mem_read_block_addr := read_addr;
 
-                mem_addr <= read_addr;
+                mem_addr <= mem_read_block_addr;
                 mem_data <= WEAK_WORD;
                 mem_access <= '1';
                 mem_write <= '0';
@@ -425,35 +401,39 @@ begin
                               sample_data : in word;
                               set_dirty   : in boolean ) is
             
-            variable block_num : natural;
-            variable sample_addr_nat : natural;
-            variable sample_addr_abs_nat : natural;
-            variable sample_addr_block_abs_nat : natural;
-            variable sample_addr_indx : natural;
+            --variable sample_addr_nat : natural;
+            --variable sample_addr_abs_nat : natural;
+            --variable sample_addr_block_abs_nat : natural;
+            --variable sample_addr_indx : natural;
 
+            variable block_indx : natural;
+            variable addr_indx : natural;
             variable cur_block : cache_block;
             variable cur_block_addrs : cache_block_addrs;
 
         begin
 
-            get_block_indx( sample_addr,
-                            block_num );
+            if( ( block_indx < NUM_BLOCKS ) and 
+                ( addr_indx < BLOCK_WORD_SIZE ) ) then
 
-            cur_block := storage( block_num );
-            cur_block_addrs := storage_addrs( block_num );
-            storage_avbls( block_num ) := '0';
-            if set_dirty = true then
-                storage_dirtys( block_num ) := '1';
-            else
-                storage_dirtys( block_num ) := '0';
+                get_cache_location( sample_addr,
+                                    block_indx,
+                                    addr_indx );
+
+                cur_block := storage( block_indx );
+                cur_block_addrs := storage_addrs( block_indx );
+                storage_avbls( block_indx ) := '0';
+
+                if set_dirty = true then
+                    storage_dirtys( block_indx ) := '1';
+                else
+                    storage_dirtys( block_indx ) := '0';
+                end if;
+
+                cur_block( addr_indx ) := sample_data;
+                cur_block_addrs( addr_indx ) := sample_addr;
+
             end if;
-
-            sample_addr_nat := to_integer( sample_addr );
-            sample_addr_abs_nat := sample_addr_nat - MIN_ADDR_NAT;
-            sample_addr_block_abs_nat := sample_addr_abs_nat mod 32;
-            sample_addr_indx := sample_addr_block_abs_nat / 4;
-            cur_block( sample_addr_indx ) := sample_data;
-            cur_block_addrs( sample_addr_indx ) := sample_addr;
 
         end procedure store_word;
 
@@ -465,12 +445,6 @@ begin
             -- Currently serving CPU read request
             cache_operation_branches:
             if cpu_read_operation = true then
-
-                query_cache( cpu_sample_addr,
-                             cur_present,
-                             cur_avbl,
-                             cur_dirty,
-                             cpu_sample_data );
 
                 -- Currently writing block into memory
                 cpu_read_operation_branches:
@@ -487,7 +461,7 @@ begin
 
                     elsif mem_write_in_progress = false then
 
-                        mem_write_block( cpu_sample_addr );
+                        mem_write_block( cur_block_indx );
 
                     end if;
 
@@ -514,46 +488,59 @@ begin
                     end if;
 
                 -- Block is present within cache
-                elsif cur_present = true then
-                        
-                    assert false
-                        report "INFO: Finished cache read operation."
-                        severity note;
-
-                    cpu_data <= cpu_sample_data;
-                    cpu_ready <= '1';
-                    cpu_read_operation := false;
 
                 else
 
-                    if cur_avbl = true then
+                    query_cache( cpu_sample_addr,
+                                 cur_block_indx,
+                                 cur_addr_indx,
+                                 cur_present,
+                                 cur_avbl,
+                                 cur_dirty,
+                                 cpu_sample_data );
 
+                    if cur_present = true then
+                            
                         assert false
-                            report "INFO: Starting memory read operation."
+                            report "INFO: Finished cache read operation."
                             severity note;
 
-                        mem_read_block( cpu_sample_addr );
-                        mem_read_operation := true;
+                        cpu_data <= cpu_sample_data;
+                        cpu_ready <= '1';
+                        cpu_read_operation := false;
 
                     else
 
-                        if cur_dirty = false then
+                        if cur_avbl = true then
 
-                            assert false
-                                report "INFO: Starting memory read operation."
-                                severity note;
+                                assert false
+                                    report "INFO: Starting memory read operation."
+                                    severity note;
 
-                            mem_read_block( cpu_sample_addr );
-                            mem_read_operation := true;
+                                mem_read_block( cpu_sample_addr );
+                                mem_read_operation := true;
 
                         else
 
-                            assert false
-                                report "INFO: Starting memory write operation."
-                                severity note;
+                            if cur_dirty = false then
 
-                            mem_write_block( cpu_sample_addr );
-                            mem_write_operation := true;
+                                assert false
+                                    report "INFO: Starting memory read operation."
+                                    severity note;
+
+                                mem_read_block( cpu_sample_addr );
+                                mem_read_operation := true;
+
+                            else
+
+                                assert false
+                                    report "INFO: Starting memory write operation."
+                                    severity note;
+
+                                mem_write_block( cur_block_indx );
+                                mem_write_operation := true;
+
+                            end if;
 
                         end if;
 
@@ -563,12 +550,6 @@ begin
 
             -- Currently serving cpu write request
             elsif cpu_write_operation = true then
-
-                query_cache( cpu_sample_addr,
-                             cur_present,
-                             cur_avbl,
-                             cur_dirty,
-                             cpu_sample_data );
 
                 cpu_write_operation_branches:
                 if mem_write_operation = true then
@@ -585,25 +566,37 @@ begin
 
                     end if;
 
-                elsif cur_present = true then
-
-                    store_word( cpu_sample_addr,
-                                cpu_sample_data,
-                                true );
-                    cpu_ready <= '1';
-                    cpu_write_operation := false;
-
                 else
 
-                    assert false
-                        report "INFO: Starting memory write operation."
-                        severity note;
+                    query_cache( cpu_sample_addr,
+                                 cur_block_indx,
+                                 cur_addr_indx,
+                                 cur_present,
+                                 cur_avbl,
+                                 cur_dirty,
+                                 cur_data );
 
-                    mem_addr <= cpu_sample_addr;
-                    mem_data <= cpu_sample_data;
-                    mem_access <= '1';
-                    mem_write <= '1';
-                    mem_write_operation := true;
+                    if cur_present = true then
+
+                        store_word( cpu_sample_addr,
+                                    cpu_sample_data,
+                                    true );
+                        cpu_ready <= '1';
+                        cpu_write_operation := false;
+
+                    else
+
+                        assert false
+                            report "INFO: Starting memory write operation."
+                            severity note;
+
+                        mem_addr <= cpu_sample_addr;
+                        mem_data <= cpu_sample_data;
+                        mem_access <= '1';
+                        mem_write <= '1';
+                        mem_write_operation := true;
+
+                    end if;
 
                 end if cpu_write_operation_branches;
 
@@ -652,6 +645,7 @@ begin
             cpu_ready <= '0';
             mem_data <= WEAK_WORD;
             mem_access <= '0';
+            mem_write <= '0';
 
         end if;
 
