@@ -265,9 +265,9 @@ begin
 
         begin
             
-            assert false
-                report "INFO: Querying cache."
-                severity note;
+            --assert false
+            --    report "INFO: Querying cache."
+            --    severity note;
 
             get_cache_location( sample_addr,
                                 sample_block_indx,
@@ -314,9 +314,9 @@ begin
 
             if mem_write_block_word_indx < BLOCK_WORD_SIZE then
 
-                assert false
-                    report "INFO: Writing word to memory."
-                    severity note;
+                --assert false
+                --    report "INFO: Writing word to memory."
+                --    severity note;
 
                 query_block_indx( block_indx,
                                   mem_write_block_word_indx,
@@ -336,9 +336,9 @@ begin
 
             else
                 
-                assert false
-                    report "INFO: Finished writing block to memory."
-                    severity note;
+                --assert false
+                --    report "INFO: Finished writing block to memory."
+                --    severity note;
 
                 mem_write_block_word_indx := 0;
                 mem_write_operation := false;
@@ -360,9 +360,9 @@ begin
 
             if mem_read_block_word_indx < BLOCK_WORD_SIZE then
 
-                assert false
-                    report "INFO: Reading word from memory."
-                    severity note;
+                --assert false
+                --    report "INFO: Reading word from memory."
+                --    severity note;
 
                 get_block_addr( sample_addr,
                                 mem_read_block_word_indx,
@@ -382,9 +382,9 @@ begin
                 mem_read_block_word_indx := 0;
                 mem_read_operation := false;
 
-                assert false
-                    report "INFO: Finished reading block from memory."
-                    severity note;
+                --assert false
+                --    report "INFO: Finished reading block from memory."
+                --    severity note;
 
             end if;
 
@@ -457,9 +457,9 @@ begin
                     -- Finished waiting for memory to finish write
                     if mem_ready = '1' then
 
-                        assert false
-                            report "INFO: Finished writing word to memory."
-                            severity note;
+                        --assert false
+                        --    report "INFO: Finished writing word to memory."
+                        --    severity note;
 
                         mem_write_in_progress := false;
 
@@ -475,9 +475,9 @@ begin
                     -- Finished waiting for memory to finish read
                     if mem_ready = '1' then
 
-                        assert false
-                            report "INFO: Finished reading word from memory."
-                            severity note;
+                        --assert false
+                        --    report "INFO: Finished reading word from memory."
+                        --    severity note;
 
                         store_word( mem_read_block_addr,
                                     mem_data,
@@ -504,22 +504,34 @@ begin
                                  cpu_sample_data );
 
                     if cur_present = true then
-                            
+                        
                         assert false
-                            report "INFO: Finished cache read operation."
+                            report "INFO: Cache read hit."
                             severity note;
+                            
+                        --assert false
+                        --    report "INFO: Finished cache read operation."
+                        --    severity note;
 
                         cpu_data <= cpu_sample_data;
                         cpu_ready <= '1';
                         cpu_read_operation := false;
 
                     else
+                        
+                        assert false
+                            report "INFO: Cache read miss."
+                            severity note;
 
                         if cur_avbl = true then
-
+                        
                                 assert false
-                                    report "INFO: Starting memory read operation."
+                                    report "INFO: Cache block fill."
                                     severity note;
+
+                                --assert false
+                                --    report "INFO: Starting memory read operation."
+                                --    severity note;
 
                                 mem_read_block( cpu_sample_addr );
                                 mem_read_operation := true;
@@ -528,18 +540,22 @@ begin
 
                             if cur_dirty = false then
 
-                                assert false
-                                    report "INFO: Starting memory read operation."
-                                    severity note;
+                                --assert false
+                                --    report "INFO: Starting memory read operation."
+                                --    severity note;
 
                                 mem_read_block( cpu_sample_addr );
                                 mem_read_operation := true;
 
                             else
-
+                        
                                 assert false
-                                    report "INFO: Starting memory write operation."
+                                    report "INFO: Cache block replacement."
                                     severity note;
+
+                                --assert false
+                                --    report "INFO: Starting memory write operation."
+                                --    severity note;
 
                                 mem_write_block( cur_block_indx );
                                 mem_write_operation := true;
@@ -560,9 +576,9 @@ begin
 
                     if mem_ready = '1' then
 
-                        assert false
-                            report "INFO: Finished memory write operation."
-                            severity note;
+                        --assert false
+                        --    report "INFO: Finished memory write operation."
+                        --    severity note;
 
                         mem_write_operation_finished := true;
                         mem_write_operation := false;
@@ -586,6 +602,10 @@ begin
                                  cur_data );
 
                     if cur_present = true then
+                        
+                        assert false
+                            report "INFO: Cache write hit."
+                            severity note;
 
                         store_word( cpu_sample_addr,
                                     cpu_sample_data,
@@ -594,10 +614,14 @@ begin
                         cpu_write_operation := false;
 
                     else
-
+                        
                         assert false
-                            report "INFO: Starting memory write operation."
+                            report "INFO: Cache write miss."
                             severity note;
+
+                        --assert false
+                        --    report "INFO: Starting memory write operation."
+                        --    severity note;
 
                         mem_addr <= cpu_sample_addr;
                         mem_data <= cpu_sample_data;
@@ -611,9 +635,9 @@ begin
 
             elsif cpu_access = '1' then
 
-                assert false
-                    report "INFO: Cache access detected."
-                    severity note;
+                --assert false
+                --    report "INFO: Cache access detected."
+                --    severity note;
 
                 assert( ( to_integer( cpu_addr ) mod 4 ) = 0 )
                     report "ERROR: Given CPU address not word-aligned."
@@ -629,9 +653,9 @@ begin
                     cpu_sample_addr := cpu_addr;
                     cpu_read_operation := true;
 
-                    assert false
-                        report "INFO: Starting cache read operation."
-                        severity note;
+                    --assert false
+                    --    report "INFO: Starting cache read operation."
+                    --    severity note;
 
                 else
 
@@ -639,9 +663,9 @@ begin
                     cpu_sample_data := cpu_data;
                     cpu_write_operation := true;
                     
-                    assert false
-                        report "INFO: Starting cache write operation."
-                        severity note;
+                    --assert false
+                    --    report "INFO: Starting cache write operation."
+                    --    severity note;
 
                 end if;
 

@@ -17,7 +17,7 @@ architecture test_cache_arch of test_cache is
 
     constant CACHE_SIZE : positive := 128;
     constant MIN_ADDR : addr := X"00_00_00_00";
-    constant MAX_ADDR : addr := X"00_00_00_7C";
+    constant MAX_ADDR : addr := X"00_00_03_FC";
 
     constant MEM_SIZE : positive := 1024;
     constant MEM_WORD_SIZE : positive := ( MEM_SIZE / 4 );
@@ -80,9 +80,9 @@ begin
                                        sample_addr  : in addr ) is
         begin
 
-            assert false
-                report "INFO: Writing data."
-                severity note;
+            --assert false
+            --    report "INFO: Writing data."
+            --    severity note;
 
             cpu_addr <= sample_addr;
             cpu_data <= sample_data;
@@ -94,6 +94,8 @@ begin
             cpu_data <= WEAK_WORD;
             cpu_access <= '0';
             cpu_write <= '0';
+            mem_data <= WEAK_WORD;
+            mem_ready <= '0';
 
             while true loop
             
@@ -109,9 +111,9 @@ begin
 
                     if mem_write = '1' then
 
-                        assert false
-                            report "INFO: Serving memory write request from cache."
-                            severity note;
+                        --assert false
+                        --    report "INFO: Serving memory write request from cache."
+                        --    severity note;
                         
                         mem_data_sample := mem_data;
 
@@ -121,19 +123,21 @@ begin
                         mem_ready <= '1';
                         wait for ( CLK_PERIOD / 2 );
 
+                        mem_data <= WEAK_WORD;
                         mem_ready <= '0';
 
                     else
 
-                        assert false
-                            report "INFO: Serving memory read request from cache."
-                            severity note;
+                        --assert false
+                        --    report "INFO: Serving memory read request from cache."
+                        --    severity note;
 
                         wait for ( ( MEM_READ_ACCESS_DELAY + MEM_READ_ACCESS_DELAY ) * CLK_PERIOD );
                         mem_data <= mem_storage( mem_data_indx );
                         mem_ready <= '1';
                         wait for ( CLK_PERIOD / 2 );
 
+                        mem_data <= WEAK_WORD;
                         mem_ready <= '0';
 
                     end if;
@@ -142,9 +146,9 @@ begin
 
             end loop;
 
-            assert false
-                report "INFO: Reading data."
-                severity note;
+            --assert false
+            --    report "INFO: Reading data."
+            --    severity note;
 
             wait for CLK_PERIOD;
 
@@ -158,6 +162,8 @@ begin
             cpu_data <= WEAK_WORD;
             cpu_access <= '0';
             cpu_write <= '0';
+            mem_data <= WEAK_WORD;
+            mem_ready <= '0';
 
             while true loop
             
@@ -173,9 +179,9 @@ begin
 
                     if mem_write = '1' then
 
-                        assert false
-                            report "INFO: Serving memory write request from cache."
-                            severity note;
+                        --assert false
+                        --    report "INFO: Serving memory write request from cache."
+                        --    severity note;
 
                         mem_data_sample := mem_data;
 
@@ -185,19 +191,21 @@ begin
                         mem_ready <= '1';
                         wait for ( CLK_PERIOD / 2 );
 
+                        mem_data <= WEAK_WORD;
                         mem_ready <= '0';
 
                     else
 
-                        assert false
-                            report "INFO: Serving memory read request from cache."
-                            severity note;
+                        --assert false
+                        --    report "INFO: Serving memory read request from cache."
+                        --    severity note;
 
                         wait for ( ( MEM_READ_ACCESS_DELAY + MEM_READ_ACCESS_DELAY ) * CLK_PERIOD );
                         mem_data <= mem_storage( mem_data_indx );
                         mem_ready <= '1';
                         wait for ( CLK_PERIOD / 2 );
 
+                        mem_data <= WEAK_WORD;
                         mem_ready <= '0';
 
                     end if;
@@ -229,6 +237,10 @@ begin
 
         clk_en <= '1';
         wait for CLK_PERIOD;
+        
+        assert false
+            report "TEST: Testing first block placement."
+            severity note;
 
         test_data_retention( X"55_55_55_55",
                              X"00_00_00_04" );
@@ -241,6 +253,23 @@ begin
         
         test_data_retention( X"11_11_11_11",
                              X"00_00_00_18" );
+        
+        assert false
+            report "TEST: Testing block replacement."
+            severity note;
+
+        test_data_retention( X"44_44_44_44",
+                             X"00_00_00_20" );
+
+        test_data_retention( X"12_34_56_78",
+                             X"00_00_00_3C" );
+        
+        assert false
+            report "TEST: Testing other block placements."
+            severity note;
+
+        test_data_retention( X"87_65_43_21",
+                             X"00_00_02_00" );
 
         clk_en <= '0';
         wait for CLK_PERIOD;
