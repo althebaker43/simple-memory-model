@@ -110,6 +110,7 @@ begin
         variable mem_read_operation : boolean := false;
         variable mem_read_in_progress : boolean := false;
         variable mem_write_operation : boolean := false;
+        variable mem_write_operation_finished : boolean := false;
         variable mem_write_in_progress : boolean := false;
 
         variable cpu_sample_addr : addr;
@@ -563,11 +564,16 @@ begin
                             report "INFO: Finished memory write operation."
                             severity note;
 
+                        mem_write_operation_finished := true;
                         mem_write_operation := false;
-                        cpu_write_operation := false;
-                        cpu_ready <= '1';
 
                     end if;
+
+                elsif mem_write_operation_finished = true then
+
+                    mem_write_operation_finished := false;
+                    cpu_write_operation := false;
+                    cpu_ready <= '1';
 
                 else
 

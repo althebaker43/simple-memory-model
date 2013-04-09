@@ -49,7 +49,7 @@ $(RUNS) : run_% : test_% | \
                   $(PLOT_DIR)
 	./$(BIN_DIR)/$(notdir $<) \
 		--assert-level=warning \
-		--stop-time=2000ns \
+		--stop-time=10us \
 		--vcd=$(OUT_DIR)/$@.vcd
 
 $(TEST_BINS) : test_% : test_%.o | \

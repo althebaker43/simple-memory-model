@@ -95,9 +95,13 @@ begin
             cpu_access <= '0';
             cpu_write <= '0';
 
-            while cpu_ready = '0' loop
+            while true loop
             
                 wait on cpu_ready, mem_access;
+
+                if cpu_ready = '1' then
+                    exit;
+                end if;
 
                 if mem_access = '1' then
 
@@ -138,11 +142,11 @@ begin
 
             end loop;
 
-            wait for ( CLK_PERIOD / 2 );
-
             assert false
                 report "INFO: Reading data."
                 severity note;
+
+            wait for CLK_PERIOD;
 
             cpu_addr <= sample_addr;
             cpu_data <= WEAK_WORD;
@@ -155,9 +159,13 @@ begin
             cpu_access <= '0';
             cpu_write <= '0';
 
-            while cpu_ready = '0' loop
+            while true loop
             
                 wait on cpu_ready, mem_access;
+
+                if cpu_ready = '1' then
+                    exit;
+                end if;
 
                 if mem_access = '1' then
                         
@@ -224,6 +232,15 @@ begin
 
         test_data_retention( X"55_55_55_55",
                              X"00_00_00_04" );
+        
+        test_data_retention( X"77_77_77_77",
+                             X"00_00_00_08" );
+        
+        test_data_retention( X"CC_CC_CC_CC",
+                             X"00_00_00_00" );
+        
+        test_data_retention( X"11_11_11_11",
+                             X"00_00_00_18" );
 
         clk_en <= '0';
         wait for CLK_PERIOD;
