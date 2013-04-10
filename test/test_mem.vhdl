@@ -15,21 +15,23 @@ end entity test_mem;
 --!@brief Memory test-bench architecture
 architecture test_mem_arch of test_mem is
 
-    constant LW_RANGE_MIN  : addr := X"00_00_00_00";
-    constant LW_RANGE_MAX  : addr := X"00_00_00_3F";
-    constant SW_RANGE_MIN  : addr := X"00_00_00_40";
-    constant SW_RANGE_MAX  : addr := X"00_00_00_7F";
-    constant ADD_RANGE_MIN : addr := X"00_00_00_80";
-    constant ADD_RANGE_MAX : addr := X"00_00_00_BF";
-    constant BEQ_RANGE_MIN : addr := X"00_00_00_C0";
-    constant BEQ_RANGE_MAX : addr := X"00_00_00_FF";
-    constant BNE_RANGE_MIN : addr := X"00_00_01_00";
-    constant BNE_RANGE_MAX : addr := X"00_00_01_3F";
-    constant LUI_RANGE_MIN : addr := X"00_00_01_40";
-    constant LUI_RANGE_MAX : addr := X"00_00_01_FF";
+    constant NOP_RANGE_MIN : addr := X"00_00_00_00";
+    constant NOP_RANGE_MAX : addr := X"00_00_00_7C";
+    constant LW_RANGE_MIN  : addr := X"00_00_00_80";
+    constant LW_RANGE_MAX  : addr := X"00_00_00_BC";
+    constant SW_RANGE_MIN  : addr := X"00_00_00_C0";
+    constant SW_RANGE_MAX  : addr := X"00_00_00_FC";
+    constant ADD_RANGE_MIN : addr := X"00_00_01_00";
+    constant ADD_RANGE_MAX : addr := X"00_00_01_3C";
+    constant BEQ_RANGE_MIN : addr := X"00_00_01_40";
+    constant BEQ_RANGE_MAX : addr := X"00_00_01_7C";
+    constant BNE_RANGE_MIN : addr := X"00_00_01_80";
+    constant BNE_RANGE_MAX : addr := X"00_00_01_BC";
+    constant LUI_RANGE_MIN : addr := X"00_00_01_C0";
+    constant LUI_RANGE_MAX : addr := X"00_00_01_FC";
 
     constant DATA_RANGE_MIN : addr := X"00_00_02_00";
-    constant DATA_RANGE_MAX : addr := X"00_00_03_FF";
+    constant DATA_RANGE_MAX : addr := X"00_00_03_FC";
 
     signal clk           : std_logic;
     signal clk_en        : std_logic;
@@ -50,7 +52,8 @@ begin
                   clk_en );
 
     mem_ent : entity work.mem( mem_behav )
-        generic map( LW_RANGE_MIN,  LW_RANGE_MAX,
+        generic map( NOP_RANGE_MIN, NOP_RANGE_MAX,
+                     LW_RANGE_MIN,  LW_RANGE_MAX,
                      SW_RANGE_MIN,  SW_RANGE_MAX,
                      ADD_RANGE_MIN, ADD_RANGE_MAX,
                      BEQ_RANGE_MIN, BEQ_RANGE_MAX,
@@ -162,9 +165,7 @@ begin
 
     begin
         
-        assert false
-            report "TEST: Starting mem_behav tests."
-            severity note;
+        println( "TEST: Starting mem_behav test." );
         
         addr_data <= NULL_ADDR;
         data <= NULL_WORD;
@@ -175,61 +176,55 @@ begin
         
         clk_en <= '1';
         wait for CLK_PERIOD;
+        
+        println( "TEST:     Starting instruction bound tests." );
 
-        assert false
-            report "TEST:   Testing LW bounds."
-            severity note;
+        println( "TEST:         Testing NOP bounds." );
+        test_instr_mem_bounds( NOP_RANGE_MIN,
+                               NOP_RANGE_MAX,
+                               INSTR_NOP );
+
+        println( "TEST:         Testing LW bounds." );
         test_instr_mem_bounds( LW_RANGE_MIN,
                                LW_RANGE_MAX,
                                LW_TEMPLATE );
 
-        assert false
-            report "TEST:   Testing SW bounds."
-            severity note;
+        println( "TEST:         Testing SW bounds." );
         test_instr_mem_bounds( SW_RANGE_MIN,
                                SW_RANGE_MAX,
                                SW_TEMPLATE );
 
-        assert false
-            report "TEST:   Testing ADD bounds."
-            severity note;
+        println( "TEST:         Testing ADD bounds." );
         test_instr_mem_bounds( ADD_RANGE_MIN,
                                ADD_RANGE_MAX,
                                ADD_TEMPLATE );
 
-        assert false
-            report "TEST:   Testing BEQ bounds."
-            severity note;
+        println( "TEST:         Testing BEQ bounds." );
         test_instr_mem_bounds( BEQ_RANGE_MIN,
                                BEQ_RANGE_MAX,
                                BEQ_TEMPLATE );
 
-        assert false
-            report "TEST:   Testing BNE bounds."
-            severity note;
+        println( "TEST:         Testing BNE bounds." );
         test_instr_mem_bounds( BNE_RANGE_MIN,
                                BNE_RANGE_MAX,
                                BNE_TEMPLATE );
 
-        assert false
-            report "TEST:   Testing LUI bounds."
-            severity note;
+        println( "TEST:         Testing LUI bounds." );
         test_instr_mem_bounds( LUI_RANGE_MIN,
                                LUI_RANGE_MAX,
                                LUI_TEMPLATE );
 
-        assert false
-            report "TEST:   Testing data retention."
-            severity note;
+        println( "TEST:     End of instruction bound tests." );
+
+        println( "TEST:     Starting data retention tests." );
         test_data_retention( X"55_55_55_55",
                              DATA_RANGE_MIN );
+        println( "TEST:     End of data retention tests." );
 
         clk_en <= '0';
         wait for CLK_PERIOD;
         
-        assert false
-        report "TEST: End of mem_behav tests."
-            severity note;
+        println( "TEST: End of mem_behav test." );
 
         wait;
 
