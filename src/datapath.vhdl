@@ -10,11 +10,12 @@ use IEEE.numeric_std.all;
 --! @brief 32-bit datapath entity
 entity datapath is
 
-    port( en        : in std_logic;
-          reset     : in std_logic;
-          addr_instr: out addr;
-          instr_hit : out std_logic;
-          data_hit  : out std_logic
+    port( en            : in std_logic;
+          reset         : in std_logic;
+          addr_instr    : out addr;
+          access_instr  : out std_logic;
+          instr_hit     : out std_logic;
+          data_hit      : out std_logic
         );
 
 end entity datapath;
@@ -57,18 +58,20 @@ architecture datapath_struct of datapath is
     constant DATA_MIN_ADDR : addr := X"00_00_02_00";
     constant DATA_MAX_ADDR : addr := X"00_00_03_FC";
     
-    constant LW_RANGE_MIN  : addr := X"00_00_02_00";
-    constant LW_RANGE_MAX  : addr := X"00_00_02_3C";
-    constant SW_RANGE_MIN  : addr := X"00_00_02_40";
-    constant SW_RANGE_MAX  : addr := X"00_00_02_7C";
-    constant ADD_RANGE_MIN : addr := X"00_00_02_80";
-    constant ADD_RANGE_MAX : addr := X"00_00_02_BC";
-    constant BEQ_RANGE_MIN : addr := X"00_00_02_C0";
-    constant BEQ_RANGE_MAX : addr := X"00_00_02_FC";
-    constant BNE_RANGE_MIN : addr := X"00_00_03_00";
-    constant BNE_RANGE_MAX : addr := X"00_00_03_3C";
-    constant LUI_RANGE_MIN : addr := X"00_00_03_40";
-    constant LUI_RANGE_MAX : addr := X"00_00_03_FC";
+    constant NOP_RANGE_MIN : addr := X"00_00_00_00";
+    constant NOP_RANGE_MAX : addr := X"00_00_00_7C";
+    constant LW_RANGE_MIN  : addr := X"00_00_00_80";
+    constant LW_RANGE_MAX  : addr := X"00_00_00_BC";
+    constant SW_RANGE_MIN  : addr := X"00_00_00_C0";
+    constant SW_RANGE_MAX  : addr := X"00_00_00_FC";
+    constant ADD_RANGE_MIN : addr := X"00_00_01_00";
+    constant ADD_RANGE_MAX : addr := X"00_00_01_3C";
+    constant BEQ_RANGE_MIN : addr := X"00_00_01_40";
+    constant BEQ_RANGE_MAX : addr := X"00_00_01_7C";
+    constant BNE_RANGE_MIN : addr := X"00_00_01_80";
+    constant BNE_RANGE_MAX : addr := X"00_00_01_BC";
+    constant LUI_RANGE_MIN : addr := X"00_00_01_C0";
+    constant LUI_RANGE_MAX : addr := X"00_00_01_FC";
 
 begin
 
@@ -124,7 +127,8 @@ begin
                   data_hit );
 
     mem_ent : entity work.mem( mem_behav )
-        generic map( LW_RANGE_MIN,  LW_RANGE_MAX,
+        generic map( NOP_RANGE_MIN, NOP_RANGE_MAX,
+                     LW_RANGE_MIN,  LW_RANGE_MAX,
                      SW_RANGE_MIN,  SW_RANGE_MAX,
                      ADD_RANGE_MIN, ADD_RANGE_MAX,
                      BEQ_RANGE_MIN, BEQ_RANGE_MAX,
@@ -144,6 +148,24 @@ begin
     operate : process( clk ) is
     begin
 
+        if clk = '1' then
+
+        end if;
+
     end process operate;
+
+    instr_access : process( cpu_access_instr ) is
+    begin
+
+        if cpu_access_instr = '1' then
+            addr_instr <= cpu_addr_instr;
+        else
+            addr_instr <= NULL_ADDR;
+        end if;
+
+        access_instr <= cpu_access_instr;
+
+    end process instr_access;
+
 
 end architecture datapath_struct;

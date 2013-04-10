@@ -18,6 +18,7 @@ architecture test_datapath_arch of test_datapath is
     signal en : std_logic;
     signal reset : std_logic;
     signal addr_instr  : addr;
+    signal access_instr : std_logic;
     signal instr_hit : std_logic;
     signal data_hit : std_logic;
 
@@ -27,13 +28,54 @@ begin
         port map( en,
                   reset,
                   addr_instr,
+                  access_instr,
                   instr_hit,
                   data_hit );
 
     test : process is
+
+        procedure test_sequential is
+
+            variable pc_orig_nat : natural := 0;
+
+        begin
+
+            if access_instr = '0' then
+                wait on access_instr;
+            end if;
+            pc_orig_nat := to_integer( addr_instr );
+            wait for CLK_PERIOD;
+            
+            if access_instr = '0' then
+                wait on access_instr;
+            end if;
+
+            assert( to_integer( addr_instr ) = pc_orig_nat + WORD_BYTE_SIZE )
+                report "ERROR: Bad sequential CPU program counter output."
+                severity error;
+
+            wait for CLK_PERIOD;
+
+        end procedure test_sequential;
+
     begin
 
+        reset <= '0';
+        wait for CLK_PERIOD;
+
+        en <= '1';
+        wait for CLK_PERIOD;
+
         println( "TEST: Starting datapath tests." );
+
+        println( "TEST:     Starting sequential operation tests." );
+        for test_sequential_count in 0 to 29 loop
+            test_sequential;
+        end loop;
+        println( "TEST:     End of sequential operation tests." );
+
+        en <= '0';
+        wait for CLK_PERIOD;
 
         println( "TEST: End of datapath tests." );
 
