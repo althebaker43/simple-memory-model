@@ -77,7 +77,6 @@ begin
                     
                     elsif instr_request_placed = false then
 
-                        println( "INFO: Placing instruction request." );
                         addr_instr <= to_unsigned( pc_nat, ADDR_SIZE );
                         access_instr <= '1';
                         instr_request_placed := true;
@@ -99,6 +98,8 @@ begin
                 when CPU_MODE_RESET =>
                     pc_nat := 0;
                     cur_cpu_mode := CPU_MODE_INSTR_FETCH;
+                        
+                    instr_request_placed := false;
 
             end case;
 

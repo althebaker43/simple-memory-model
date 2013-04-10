@@ -59,6 +59,9 @@ begin
 
             if clk = '0' then
                 wait on clk;
+                wait for CLK_PERIOD;
+            else
+                wait for ( CLK_PERIOD / 2 );
             end if;
 
             reset <= '1';
@@ -116,12 +119,12 @@ begin
 
         println( "TEST: Starting cpu_behav tests." );
 
-        clk_en <= '0';
         reset <= '0';
         instr <= NULL_WORD;
         ready_instr <= '0';
         data <= WEAK_WORD;
         ready_data <= '0';
+        wait for CLK_PERIOD;
 
         clk_en <= '1';
         wait for CLK_PERIOD;
@@ -141,6 +144,7 @@ begin
         println( "TEST:     End of sequential operation tests." );
 
         reset_cpu;
+        wait for CLK_PERIOD;
         
         clk_en <= '0';
         wait for CLK_PERIOD;
