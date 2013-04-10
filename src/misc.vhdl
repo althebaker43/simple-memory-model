@@ -1,6 +1,9 @@
 --! @file misc.vhdl
 --! @brief File containing miscellaneous datapath components and definitions
 
+library std;
+use std.textio.all;
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
@@ -74,6 +77,8 @@ package datapath_types is
     constant INSTR_SHMT_SIZE : natural  := 5;
     constant INSTR_FUNCT_SIZE : natural := 6;
 
+    procedure println( print_string : in string );
+
 end package datapath_types;
 
 package body datapath_types is
@@ -90,7 +95,7 @@ package body datapath_types is
 
         return weak_word;
 
-    end function;
+    end function WEAK_WORD;
         
 
     function get_addr_substring_value( sample_addr  : in addr;
@@ -116,6 +121,18 @@ package body datapath_types is
         return result;
 
     end function get_addr_substring_value;
+
+    
+    procedure println( print_string : in string ) is
+
+        variable print_line : line;
+
+    begin
+
+        write( print_line, print_string );
+        writeline( OUTPUT, print_line );
+
+    end println;
 
 end package body;
 

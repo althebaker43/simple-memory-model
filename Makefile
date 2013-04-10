@@ -73,14 +73,15 @@ $(TEST_OBJS) : test_%.o : test_%.vhdl \
 		$<
 
 $(SECTION_OBJS) : %.o : misc.vhdl \
-                        %.vhdl | \
+                        %.vhdl \
+                        ctags | \
                         $(OBJ_DIR)
 	$(CC) \
 		-a \
 		-g \
 		--work=$(TARGET) \
 		--workdir=$(OBJ_DIR) \
-		$^
+		$(SRC_DIR)/misc.vhdl $(SRC_DIR)/$*.vhdl
 
 
 ## Documentation ##
