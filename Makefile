@@ -35,7 +35,8 @@ CC = ghdl
 
 ## Global Recipies
 
-runs : $(RUNS)
+runs : run_misc \
+       $(RUNS)
 
 tests : $(TEST_BINS)
 
@@ -51,8 +52,44 @@ $(RUNS) : run_% : test_% | \
 		--stop-time=10us \
 		--vcd=$(OUT_DIR)/$@.vcd
 
+run_$(TARGET) : test_$(TARGET) | \
+                $(OUT_DIR) \
+                $(PLOT_DIR)
+	./$(BIN_DIR)/$(notdir $<) \
+		--assert-level=warning \
+		--stop-time=10us \
+		--vcd=$(OUT_DIR)/$@.vcd
+
+run_misc : test_misc | \
+           $(OUT_DIR) \
+           $(PLOT_DIR)
+	./$(BIN_DIR)/$(notdir $<) \
+		--assert-level=warning \
+		--stop-time=10us \
+		--vcd=$(OUT_DIR)/$@.vcd
+
 $(TEST_BINS) : test_% : test_%.o | \
                         $(BIN_DIR)
+	$(CC) \
+		-e \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		-o $(BIN_DIR)/$@ \
+		$@
+
+test_$(TARGET) : test_$(TARGET).o | \
+                 $(BIN_DIR)
+	$(CC) \
+		-e \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		-o $(BIN_DIR)/$@ \
+		$@
+
+test_misc : test_misc.o | \
+            $(BIN_DIR)
 	$(CC) \
 		-e \
 		-g \
@@ -64,6 +101,26 @@ $(TEST_BINS) : test_% : test_%.o | \
 $(TEST_OBJS) : test_%.o : test_%.vhdl \
                           %.o | \
                           $(OBJ_DIR)
+	$(CC) \
+		-a \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		$<
+
+test_$(TARGET).o : test_$(TARGET).vhdl \
+                   $(TARGET).o | \
+                   $(OBJ_DIR)
+	$(CC) \
+		-a \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		$<
+
+test_misc.o : test_misc.vhdl \
+              misc.o | \
+              $(OBJ_DIR)
 	$(CC) \
 		-a \
 		-g \
