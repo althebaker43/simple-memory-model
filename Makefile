@@ -17,10 +17,9 @@ TARGET = datapath
 
 SECTIONS = cpu \
            cache \
-           mem \
-           misc
+           mem
 
-SOURCES := $(SECTIONS:%=%.vhdl)
+SOURCES := $(SECTIONS:%=%.vhdl) 
 
 SECTION_OBJS := $(SECTIONS:%=%.o)
 
@@ -72,7 +71,7 @@ $(TEST_OBJS) : test_%.o : test_%.vhdl \
 		--workdir=$(OBJ_DIR) \
 		$<
 
-$(SECTION_OBJS) : %.o : misc.vhdl \
+$(SECTION_OBJS) : %.o : misc.o \
                         %.vhdl \
                         ctags | \
                         $(OBJ_DIR)
@@ -81,7 +80,28 @@ $(SECTION_OBJS) : %.o : misc.vhdl \
 		-g \
 		--work=$(TARGET) \
 		--workdir=$(OBJ_DIR) \
-		$(SRC_DIR)/misc.vhdl $(SRC_DIR)/$*.vhdl
+		$(SRC_DIR)/$*.vhdl
+
+misc.o : misc.vhdl \
+         ctags | \
+		 $(OBJ_DIR)
+	$(CC) \
+		-a \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		$(SRC_DIR)/misc.vhdl
+
+$(TARGET).o : misc.o \
+              $(SECTION_OBJS) \
+              ctags | \
+              $(OBJ_DIR)
+	$(CC) \
+		-a \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		$(SRC_DIR)/$(TARGET).vhdl
 
 
 ## Documentation ##
