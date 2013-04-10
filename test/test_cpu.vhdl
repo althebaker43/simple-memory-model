@@ -73,6 +73,41 @@ begin
         end procedure reset_cpu;
 
 
+        procedure test_reset is
+        begin
+            
+            if clk = '0' then
+                wait on clk;
+                wait for CLK_PERIOD;
+            else
+                wait for ( CLK_PERIOD / 2 );
+            end if;
+
+            reset <= '1';
+            wait for ( CLK_PERIOD / 2 );
+
+            reset <= '0';
+            wait for ( CLK_PERIOD / 2 );
+            
+            if access_instr = '0' then
+                wait on access_instr;
+            end if;
+
+            assert( addr_instr = NULL_ADDR )
+                report "ERROR: Bad CPU program counter output after reset."
+                severity error;
+            wait for CLK_PERIOD;
+
+            instr <= INSTR_NOP;
+            ready_instr <= '1';
+            wait for ( CLK_PERIOD / 2 );
+
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+
+        end procedure;
+
+
         procedure test_sequential is
 
             variable pc_orig_nat : natural := 0;
@@ -129,22 +164,15 @@ begin
         clk_en <= '1';
         wait for CLK_PERIOD;
 
+        println( "TEST:     Starting reset tests." );
+        test_reset;
+        println( "TEST:     End of reset tests." );
+
         println( "TEST:     Starting sequential operation tests." );
-
         for test_sequential_count in 0 to 29 loop
-
-            if( ( test_sequential_count mod 10 ) = 0 ) then
-                reset_cpu;
-            end if;
-
             test_sequential;
-
         end loop;
-        
         println( "TEST:     End of sequential operation tests." );
-
-        reset_cpu;
-        wait for CLK_PERIOD;
         
         clk_en <= '0';
         wait for CLK_PERIOD;
