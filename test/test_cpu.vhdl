@@ -20,6 +20,8 @@ architecture test_cpu_arch of test_cpu is
     signal clk : std_logic;
     signal clk_en : std_logic;
 
+    signal reset : std_logic;
+
     signal addr_instr : addr;
     signal instr : word;
     signal access_instr : std_logic;
@@ -39,6 +41,7 @@ begin
 
     cpu_ent : entity work.cpu( cpu_behav )
         port map( clk,
+                  reset,
                   addr_instr,
                   instr,
                   access_instr,
@@ -50,6 +53,22 @@ begin
                   ready_data );
 
     test : process is
+
+        procedure reset_cpu is
+        begin
+
+            if clk = '0' then
+                wait on clk;
+            end if;
+
+            reset <= '1';
+            wait for ( CLK_PERIOD / 2 );
+
+            reset <= '0';
+            wait for ( CLK_PERIOD / 2 );
+
+        end procedure reset_cpu;
+
 
         procedure test_sequential is
 
@@ -98,6 +117,7 @@ begin
         println( "TEST: Starting cpu_behav tests." );
 
         clk_en <= '0';
+        reset <= '0';
         instr <= NULL_WORD;
         ready_instr <= '0';
         data <= WEAK_WORD;
@@ -106,11 +126,21 @@ begin
         clk_en <= '1';
         wait for CLK_PERIOD;
 
-        for test_sequential_count in 0 to 99 loop
+        println( "TEST:     Starting sequential operation tests." );
+
+        for test_sequential_count in 0 to 29 loop
+
+            if( ( test_sequential_count mod 10 ) = 0 ) then
+                reset_cpu;
+            end if;
 
             test_sequential;
 
         end loop;
+        
+        println( "TEST:     End of sequential operation tests." );
+
+        reset_cpu;
         
         clk_en <= '0';
         wait for CLK_PERIOD;

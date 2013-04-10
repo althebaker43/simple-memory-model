@@ -11,6 +11,8 @@ use IEEE.numeric_std.all;
 entity cpu is
     port( clk           : in std_logic;
 
+          reset         : in std_logic;
+
           addr_instr    : out addr;
           instr         : in word;
           access_instr  : out std_logic;
@@ -50,11 +52,17 @@ begin
         variable instr_request_placed : boolean := false;
 
         -- Instruction Decode Mode variables
+        variable masked_instr : word := NULL_WORD;
 
 
     begin
 
         if clk = '1' then
+
+            if reset = '1' then
+                println( "INFO: Reset detected." );
+                cur_cpu_mode := CPU_MODE_RESET;
+            end if;
 
             case cur_cpu_mode is
 
@@ -69,6 +77,7 @@ begin
                     
                     elsif instr_request_placed = false then
 
+                        println( "INFO: Placing instruction request." );
                         addr_instr <= to_unsigned( pc_nat, ADDR_SIZE );
                         access_instr <= '1';
                         instr_request_placed := true;
@@ -76,6 +85,8 @@ begin
                     end if;
 
                 when CPU_MODE_INSTR_DECODE =>
+
+                    --masked_instr := cur_instr and INSTR_OP_MASK;
 
                     cur_cpu_mode := CPU_MODE_INSTR_FETCH;
 
@@ -86,6 +97,7 @@ begin
                 when CPU_MODE_WRITE_BACK =>
 
                 when CPU_MODE_RESET =>
+                    pc_nat := 0;
                     cur_cpu_mode := CPU_MODE_INSTR_FETCH;
 
             end case;
