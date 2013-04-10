@@ -23,10 +23,8 @@ begin
         variable addr_substring_value : natural := 0;
 
     begin
-        
-        assert false
-            report "TEST: Starting clk_gen tests."
-            severity note;
+
+        println( "TEST: Starting clk_gen tests." );
 
         wait for CLK_PERIOD;
         en <= '1';
@@ -43,15 +41,10 @@ begin
 
         en <= '0';
         wait for ( CLK_PERIOD / 2 );
-        
-        assert false
-            report "TEST: End of clk_gen tests."
-            severity note;
 
+        println( "TEST: End of clk_gen tests." );
 
-        assert false
-            report "TEST: Starting get_addr_substring_value tests."
-            severity note;
+        println( "TEST: Starting get_addr_substring_value tests." );
 
         input_addr := X"00_00_04_00";
         addr_substring_value := get_addr_substring_value( input_addr,
@@ -69,9 +62,7 @@ begin
             report "TEST: Bad get_addr_substring_value output."
             severity error;
 
-        assert false
-            report "TEST: End of get_addr_substring_value tests."
-            severity note;
+        println( "TEST: End of get_addr_substring_value tests." );
 
         wait;
 
