@@ -48,6 +48,9 @@ package datapath_types is
     --! Total size of memory in bytes
     constant MEM_SIZE : positive := 1024;
 
+    --! No-operation instruction
+    constant INSTR_NOP : word := B"111111_00000_00000_0000000000000000";
+
     constant LW_TEMPLATE  : word := B"100011_00000_00000_0000000000000000";
     constant SW_TEMPLATE  : word := B"101011_00000_00000_0000000000000000";
     constant ADD_TEMPLATE : word := B"000000_00000_00000_00000_00000_100000";
