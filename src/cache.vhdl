@@ -92,16 +92,6 @@ architecture cache_behav of cache is
 
 begin
 
-    --cpu_data <= WEAK_WORD;
-    --cpu_ready <= '0';
-
-    --mem_addr <= NULL_ADDR;
-    --mem_data <= WEAK_WORD;
-    --mem_access <= '0';
-    --mem_write <= '0';
-
-    --hit <= '0';
-
     operate : process( clk ) is
 
         variable cpu_read_operation : boolean := false;
@@ -113,8 +103,8 @@ begin
         variable mem_write_operation_finished : boolean := false;
         variable mem_write_in_progress : boolean := false;
 
-        variable cpu_sample_addr : addr;
-        variable cpu_sample_data : word;
+        variable cpu_sample_addr : addr := NULL_ADDR;
+        variable cpu_sample_data : word := NULL_WORD;
 
         variable cur_block_indx : natural := 0;
         variable cur_addr_indx : natural := 0;
@@ -125,9 +115,9 @@ begin
 
         variable mem_write_block_word_indx : natural := 0;
         variable mem_read_block_word_indx : natural := 0;
-        variable mem_read_block_addr : addr;
-
-        variable mem_sample_data : word;
+        variable mem_read_block_addr : addr := NULL_ADDR;
+        variable mem_ready_received : boolean := false;
+        variable mem_sample_data : word := NULL_WORD;
 
         variable storage : block_arr := ( others => NULL_CACHE_BLOCK );
         variable storage_addrs : block_addrs_arr := ( others => NULL_CACHE_BLOCK_ADDRS );
@@ -153,7 +143,6 @@ begin
 
             block_indx_mask := to_unsigned( cache_size - 1, ADDR_SIZE );
             block_indx := to_integer( ( block_indx_mask and sample_addr ) srl 8 );
-
 
             addr_indx_mask := to_unsigned( BLOCK_BYTE_SIZE - 1, ADDR_SIZE );
             addr_indx := to_integer( ( addr_indx_mask and sample_addr ) srl 2 );
@@ -264,10 +253,6 @@ begin
             variable present_data : word;
 
         begin
-            
-            --assert false
-            --    report "INFO: Querying cache."
-            --    severity note;
 
             get_cache_location( sample_addr,
                                 sample_block_indx,
@@ -314,10 +299,6 @@ begin
 
             if mem_write_block_word_indx < BLOCK_WORD_SIZE then
 
-                --assert false
-                --    report "INFO: Writing word to memory."
-                --    severity note;
-
                 query_block_indx( block_indx,
                                   mem_write_block_word_indx,
                                   write_avbl,
@@ -335,10 +316,6 @@ begin
                 mem_write_in_progress := true;
 
             else
-                
-                --assert false
-                --    report "INFO: Finished writing block to memory."
-                --    severity note;
 
                 mem_write_block_word_indx := 0;
                 mem_write_operation := false;
@@ -360,10 +337,6 @@ begin
 
             if mem_read_block_word_indx < BLOCK_WORD_SIZE then
 
-                --assert false
-                --    report "INFO: Reading word from memory."
-                --    severity note;
-
                 get_block_addr( sample_addr,
                                 mem_read_block_word_indx,
                                 mem_read_block_addr );
@@ -382,10 +355,6 @@ begin
                 mem_read_block_word_indx := 0;
                 mem_read_operation := false;
 
-                --assert false
-                --    report "INFO: Finished reading block from memory."
-                --    severity note;
-
             end if;
 
         end procedure mem_read_block;
@@ -401,11 +370,6 @@ begin
         procedure store_word( sample_addr : in addr;
                               sample_data : in word;
                               set_dirty   : in boolean ) is
-            
-            --variable sample_addr_nat : natural;
-            --variable sample_addr_abs_nat : natural;
-            --variable sample_addr_block_abs_nat : natural;
-            --variable sample_addr_indx : natural;
 
             variable block_indx : natural;
             variable addr_indx : natural;
@@ -455,17 +419,24 @@ begin
                 if mem_write_operation = true then
 
                     -- Finished waiting for memory to finish write
-                    if mem_ready = '1' then
+                    if mem_ready_received = true then
 
-                        --assert false
-                        --    report "INFO: Finished writing word to memory."
-                        --    severity note;
-
+                        mem_ready_received := false;
                         mem_write_in_progress := false;
 
                     elsif mem_write_in_progress = false then
 
                         mem_write_block( cur_block_indx );
+
+                    else
+
+                        cpu_data <= WEAK_WORD;
+                        cpu_ready <= '0';
+                        mem_addr <= NULL_ADDR;
+                        mem_data <= WEAK_WORD;
+                        mem_access <= '0';
+                        mem_write <= '0';
+                        hit <= '0';
 
                     end if;
 
@@ -473,26 +444,32 @@ begin
                 elsif mem_read_operation = true then
 
                     -- Finished waiting for memory to finish read
-                    if mem_ready = '1' then
-
-                        --assert false
-                        --    report "INFO: Finished reading word from memory."
-                        --    severity note;
+                    if mem_ready_received = true then
 
                         store_word( mem_read_block_addr,
-                                    mem_data,
+                                    mem_sample_data,
                                     false );
 
+                        mem_ready_received := false;
                         mem_read_in_progress := false;
 
                     elsif mem_read_in_progress = false then
 
                         mem_read_block( cpu_sample_addr );
 
+                    else
+
+                        cpu_data <= WEAK_WORD;
+                        cpu_ready <= '0';
+                        mem_addr <= NULL_ADDR;
+                        mem_data <= WEAK_WORD;
+                        mem_access <= '0';
+                        mem_write <= '0';
+                        hit <= '0';
+
                     end if;
 
                 -- Block is present within cache
-
                 else
 
                     query_cache( cpu_sample_addr,
@@ -504,34 +481,26 @@ begin
                                  cpu_sample_data );
 
                     if cur_present = true then
-                        
-                        assert false
-                            report "INFO: Cache read hit."
-                            severity note;
-                            
-                        --assert false
-                        --    report "INFO: Finished cache read operation."
-                        --    severity note;
 
+                        --println( "INFO: Cache read hit." );
+                            
+                        cpu_read_operation := false;
+                        
                         cpu_data <= cpu_sample_data;
                         cpu_ready <= '1';
-                        cpu_read_operation := false;
+                        mem_addr <= NULL_ADDR;
+                        mem_data <= WEAK_WORD;
+                        mem_access <= '0';
+                        mem_write <= '0';
+                        hit <= '0';
 
                     else
                         
-                        assert false
-                            report "INFO: Cache read miss."
-                            severity note;
+                        --println( "INFO: Cache read miss." );
 
                         if cur_avbl = true then
                         
-                                assert false
-                                    report "INFO: Cache block fill."
-                                    severity note;
-
-                                --assert false
-                                --    report "INFO: Starting memory read operation."
-                                --    severity note;
+                                --println( "INFO: Cache block fill." );
 
                                 mem_read_block( cpu_sample_addr );
                                 mem_read_operation := true;
@@ -540,22 +509,12 @@ begin
 
                             if cur_dirty = false then
 
-                                --assert false
-                                --    report "INFO: Starting memory read operation."
-                                --    severity note;
-
                                 mem_read_block( cpu_sample_addr );
                                 mem_read_operation := true;
 
                             else
                         
-                                assert false
-                                    report "INFO: Cache block replacement."
-                                    severity note;
-
-                                --assert false
-                                --    report "INFO: Starting memory write operation."
-                                --    severity note;
+                                --println( "INFO: Cache block replacement." );
 
                                 mem_write_block( cur_block_indx );
                                 mem_write_operation := true;
@@ -574,22 +533,34 @@ begin
                 cpu_write_operation_branches:
                 if mem_write_operation = true then
 
-                    if mem_ready = '1' then
+                    if mem_ready_received = true then
 
-                        --assert false
-                        --    report "INFO: Finished memory write operation."
-                        --    severity note;
-
+                        mem_ready_received := false;
                         mem_write_operation_finished := true;
                         mem_write_operation := false;
 
                     end if;
 
+                    cpu_data <= WEAK_WORD;
+                    cpu_ready <= '0';
+                    mem_addr <= NULL_ADDR;
+                    mem_data <= WEAK_WORD;
+                    mem_access <= '0';
+                    mem_write <= '0';
+                    hit <= '0';
+
                 elsif mem_write_operation_finished = true then
 
                     mem_write_operation_finished := false;
                     cpu_write_operation := false;
+                        
+                    cpu_data <= WEAK_WORD;
                     cpu_ready <= '1';
+                    mem_addr <= NULL_ADDR;
+                    mem_data <= WEAK_WORD;
+                    mem_access <= '0';
+                    mem_write <= '0';
+                    hit <= '0';
 
                 else
 
@@ -603,41 +574,56 @@ begin
 
                     if cur_present = true then
                         
-                        assert false
-                            report "INFO: Cache write hit."
-                            severity note;
+                        --println( "INFO: Cache write hit." );
 
                         store_word( cpu_sample_addr,
                                     cpu_sample_data,
                                     true );
-                        cpu_ready <= '1';
+                        
                         cpu_write_operation := false;
+                        
+                        cpu_data <= WEAK_WORD;
+                        cpu_ready <= '1';
+                        mem_addr <= NULL_ADDR;
+                        mem_data <= WEAK_WORD;
+                        mem_access <= '0';
+                        mem_write <= '0';
+                        hit <= '0';
 
                     else
                         
-                        assert false
-                            report "INFO: Cache write miss."
-                            severity note;
+                        --println( "INFO: Cache write miss." );
 
-                        --assert false
-                        --    report "INFO: Starting memory write operation."
-                        --    severity note;
-
+                        mem_write_operation := true;
+                        
+                        cpu_data <= WEAK_WORD;
+                        cpu_ready <= '0';
                         mem_addr <= cpu_sample_addr;
                         mem_data <= cpu_sample_data;
                         mem_access <= '1';
                         mem_write <= '1';
-                        mem_write_operation := true;
+                        hit <= '0';
 
                     end if;
 
                 end if cpu_write_operation_branches;
 
-            elsif cpu_access = '1' then
+            else
 
-                --assert false
-                --    report "INFO: Cache access detected."
-                --    severity note;
+                cpu_data <= WEAK_WORD;
+                cpu_ready <= '0';
+                mem_addr <= NULL_ADDR;
+                mem_data <= WEAK_WORD;
+                mem_access <= '0';
+                mem_write <= '0';
+                hit <= '0';
+
+            end if cache_operation_branches;
+
+        else
+
+            cache_sample_branches:
+            if cpu_access = '1' then
 
                 assert( ( to_integer( cpu_addr ) mod 4 ) = 0 )
                     report "ERROR: Given CPU address not word-aligned."
@@ -653,32 +639,25 @@ begin
                     cpu_sample_addr := cpu_addr;
                     cpu_read_operation := true;
 
-                    --assert false
-                    --    report "INFO: Starting cache read operation."
-                    --    severity note;
-
                 else
 
                     cpu_sample_addr := cpu_addr;
                     cpu_sample_data := cpu_data;
                     cpu_write_operation := true;
-                    
-                    --assert false
-                    --    report "INFO: Starting cache write operation."
-                    --    severity note;
 
                 end if;
 
-            end if cache_operation_branches;
+            elsif mem_ready = '1' then
 
-        -- Pull down status indicators on second half of clock cycle
-        else
+                mem_ready_received := true;
+                mem_sample_data := mem_data;
 
-            cpu_data <= WEAK_WORD;
-            cpu_ready <= '0';
-            mem_data <= WEAK_WORD;
-            mem_access <= '0';
-            mem_write <= '0';
+            else
+
+                mem_ready_received := false;
+                mem_sample_data := NULL_WORD;
+
+            end if cache_sample_branches;
 
         end if;
 
