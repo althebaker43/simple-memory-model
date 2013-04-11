@@ -84,6 +84,11 @@ package datapath_types is
 
     procedure println( print_string : in string );
 
+    procedure get_random_nat( m_z_nat : inout natural;
+                              m_w_nat : inout natural;
+                              max_value : in natural;
+                              random_value : out natural );
+
 end package datapath_types;
 
 package body datapath_types is
@@ -166,6 +171,35 @@ package body datapath_types is
         writeline( OUTPUT, print_line );
 
     end println;
+
+
+    --! @brief Multiply-with-Carry Random Number Generator
+    --!
+    --! @author George Marsaglia
+    procedure get_random_nat( m_z_nat : inout natural;
+                              m_w_nat : inout natural;
+                              max_value : in natural;
+                              random_value : out natural ) is
+
+        variable m_w : word := to_signed( m_w_nat, WORD_SIZE );
+        variable m_z : word := to_signed( m_z_nat, WORD_SIZE );
+
+    begin
+
+        m_z := m_z srl 16;
+        m_z := m_z and to_signed( 65535, WORD_SIZE );
+        m_z := to_signed( ( to_integer( m_z ) * 36969 ), WORD_SIZE );
+        m_z_nat := to_integer( m_z );
+
+        m_w := m_w srl 16;
+        m_w := m_w and to_signed( 65535, WORD_SIZE );
+        m_w := to_signed( ( to_integer( m_w ) * 18000 ), WORD_SIZE );
+        m_w_nat := to_integer( m_w );
+
+        random_value := ( to_integer( m_z sll 16 ) + to_integer( m_w ) ) mod max_value;
+
+    end procedure get_random_nat;
+
 
 end package body;
 

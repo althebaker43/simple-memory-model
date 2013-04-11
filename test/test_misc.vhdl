@@ -25,6 +25,12 @@ begin
         variable act_addr_mask_value : addr := NULL_ADDR;
         variable addr_substring_value : natural := 0;
 
+        variable m_z_nat : natural := 4;
+        variable m_w_nat : natural := 3;
+        variable first_random_value : natural := 0;
+        variable second_random_value : natural := 0;
+        variable third_random_value : natural := 0;
+
     begin
 
         println( "TEST: Starting misc tests." );
@@ -90,6 +96,37 @@ begin
             severity error;
 
         println( "TEST:     End of get_addr_substring_value tests." );
+
+        --println( "TEST:     Starting get_random_nat tests." );
+
+        --get_random_nat( m_z_nat,
+        --                m_w_nat,
+        --                32,
+        --                first_random_value );
+        --assert( first_random_value <= 32 )
+        --    report "ERROR: Bad get_random_nat output."
+        --    severity error;
+
+        --get_random_nat( m_z_nat,
+        --                m_w_nat,
+        --                32,
+        --                second_random_value );
+        --assert( not( second_random_value = first_random_value ) and
+        --        ( second_random_value < 32 ) )
+        --    report "ERROR: Bad get_random_nat output."
+        --    severity error;
+
+        --get_random_nat( m_z_nat,
+        --                m_w_nat,
+        --                32,
+        --                third_random_value );
+        --assert( not( third_random_value = first_random_value ) and
+        --        not( third_random_value = second_random_value ) and
+        --        ( third_random_value < 32 ) )
+        --    report "ERROR: Bad get_random_nat output."
+        --    severity error;
+        --
+        --println( "TEST:     End of get_random_nat tests." );
         
         println( "TEST: End of misc tests." );
 
