@@ -154,7 +154,7 @@ begin
 
             for block_indx_addr_indx in block_indx_addr'range loop
                 if( block_indx_addr( block_indx_addr'right ) = '0' ) then
-                    block_indx_addr := block_indx_mask srl 1;
+                    block_indx_addr := block_indx_addr srl 1;
                 end if;
             end loop;
 
