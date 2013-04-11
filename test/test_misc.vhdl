@@ -20,10 +20,10 @@ begin
 
     test : process is 
 
-        variable input_addr : addr := NULL_ADDR;
+        variable input_word : word := NULL_WORD;
+        variable word_substring_value : natural := 0;
         variable exp_addr_mask_value : addr := NULL_ADDR;
         variable act_addr_mask_value : addr := NULL_ADDR;
-        variable addr_substring_value : natural := 0;
 
         variable m_z_nat : natural := 4;
         variable m_w_nat : natural := 3;
@@ -77,25 +77,25 @@ begin
 
         println( "TEST:     End of get_addr_mask tests." );
 
-        println( "TEST:     Starting get_addr_substring_value tests." );
+        println( "TEST:     Starting get_word_substring_value tests." );
 
-        input_addr := X"00_00_04_00";
-        addr_substring_value := get_addr_substring_value( input_addr,
+        input_word := X"00_00_04_00";
+        word_substring_value := get_word_substring_value( input_word,
                                                           8,
                                                           8 );
-        assert( addr_substring_value = 4 )
-            report "ERROR: Bad get_addr_substring_value output."
+        assert( word_substring_value = 4 )
+            report "ERROR: Bad get_word_substring_value output."
             severity error;
 
-        input_addr := X"00_11_00_00";
-        addr_substring_value := get_addr_substring_value( input_addr,
+        input_word := X"00_11_00_00";
+        word_substring_value := get_word_substring_value( input_word,
                                                           16,
                                                           8 );
-        assert( addr_substring_value = 17 )
-            report "ERROR: Bad get_addr_substring_value output."
+        assert( word_substring_value = 17 )
+            report "ERROR: Bad get_word_substring_value output."
             severity error;
 
-        println( "TEST:     End of get_addr_substring_value tests." );
+        println( "TEST:     End of get_word_substring_value tests." );
 
         --println( "TEST:     Starting get_random_nat tests." );
 

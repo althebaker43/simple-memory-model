@@ -54,7 +54,7 @@ begin
 
     test : process is
 
-        procedure reset_cpu is
+        procedure reset_cpu( pc_val : in addr ) is
         begin
 
             wait until clk = '1';
@@ -72,7 +72,7 @@ begin
 
             wait until clk = '1';
 
-            reset_cpu;
+            reset_cpu( NULL_ADDR );
 
             wait until access_instr = '1';
 
@@ -128,6 +128,79 @@ begin
 
         end procedure test_sequential;
 
+
+        procedure test_lw_instr is
+        begin
+
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+            data <= WEAK_WORD;
+            ready_data <= '0';
+            wait until access_instr = '1';
+
+            wait for CLK_PERIOD;
+
+            instr <= LW_TEMPLATE;
+            ready_instr <= '1';
+            wait for CLK_PERIOD;
+            
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+
+            wait on access_instr, access_data;
+
+            assert( access_data = '1' )
+                report "ERROR: No data access detected for LW instruction."
+                severity error;
+            assert( write_data = '0' )
+                report "ERROR: Incorrect data access type detected for LW instruction."
+                severity error;
+
+            data <= X"12_34_45_78";
+            ready_data <= '1';
+            wait for CLK_PERIOD;
+
+            data <= NULL_WORD;
+            ready_data <= '0';
+
+        end procedure test_lw_instr;
+
+
+        procedure test_sw_instr is
+        begin
+
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+            data <= WEAK_WORD;
+            ready_data <= '0';
+            wait until access_instr = '1';
+
+            wait for CLK_PERIOD;
+
+            instr <= SW_TEMPLATE;
+            ready_instr <= '1';
+            wait for CLK_PERIOD;
+            
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+
+            wait on access_instr, access_data;
+
+            assert( access_data = '1' )
+                report "ERROR: No data access detected for SW instruction."
+                severity error;
+            assert( write_data = '1' )
+                report "ERROR: Incorrect data access type detected for SW instruction."
+                severity error;
+
+            ready_data <= '1';
+            wait for CLK_PERIOD;
+
+            ready_data <= '0';
+
+        end procedure test_sw_instr;
+
+
     begin
 
         println( "TEST: Starting cpu_behav tests." );
@@ -153,6 +226,14 @@ begin
             test_sequential;
         end loop;
         println( "TEST:     End of sequential operation tests." );
+
+        println( "TEST:     Starting LW instruction tests." );
+        test_lw_instr;
+        println( "TEST:     End of LW instruction tests." );
+
+        println( "TEST:     Starting SW instruction tests." );
+        test_sw_instr;
+        println( "TEST:     End of SW instruction tests." );
         
         clk_en <= '0';
         wait for CLK_PERIOD;

@@ -49,6 +49,10 @@ architecture cpu_behav of cpu is
     constant INSTR_MODE_LUI : instr_mode := 6;
     constant INSTR_MODE_NOP : instr_mode := 7;
 
+    constant NUM_REGS : positive := 32;
+
+    type reg_file is array( 0 to ( NUM_REGS - 1 ) ) of word;
+
 begin
 
     operate : process( clk ) is
@@ -64,13 +68,32 @@ begin
         variable pc_nat : natural := 0;
         variable cur_instr : word;
         variable cur_instr_mode : instr_mode := INSTR_MODE_NOP;
+        variable reg_file_var : reg_file := ( others => NULL_WORD );
 
         -- Instruction Fetch Mode variables
         variable instr_request_placed : boolean := false;
 
         -- Instruction Decode Mode variables
         variable masked_instr : word := NULL_WORD;
+        variable cur_rs_indx : natural := 0;
+        variable cur_rt_indx : natural := 0;
+        variable cur_immed_value : natural := 0;
+        variable cur_rd_indx : natural := 0;
+        variable cur_shmt_value : natural := 0;
+        variable new_pc_addr_value : natural := 0;
+        variable cur_rs_value : natural := 0;
+        variable cur_rt_value : natural := 0;
 
+        -- Execute variables
+        variable final_addr_data_value : natural := 0;
+        variable final_add_value : natural := 0;
+        variable lui_word : word := NULL_WORD;
+
+        -- Memory Modify variables
+        variable final_addr_data : addr := NULL_ADDR;
+        variable final_lw_data : word := NULL_WORD;
+        variable final_sw_data : word := NULL_WORD;
+        variable memory_modify_in_progress : boolean := false;
 
     begin
 
@@ -114,6 +137,26 @@ begin
 
                     masked_instr := cur_instr and INSTR_OP_MASK;
 
+                    cur_rs_indx := get_word_substring_value( cur_instr,
+                                                             INSTR_RS_POS,
+                                                             INSTR_RS_SIZE );
+
+                    cur_rt_indx := get_word_substring_value( cur_instr,
+                                                             INSTR_RT_POS,
+                                                             INSTR_RT_SIZE );
+
+                    cur_immed_value := get_word_substring_value( cur_instr,
+                                                                 INSTR_IMMED_POS,
+                                                                 INSTR_IMMED_SIZE );
+
+                    cur_rd_indx := get_word_substring_value( cur_instr,
+                                                             INSTR_RD_POS,
+                                                             INSTR_RD_SIZE );
+
+                    cur_shmt_value := get_word_substring_value( cur_instr,
+                                                                INSTR_SHMT_POS,
+                                                                INSTR_SHMT_SIZE );
+
                     instruction_decode_cases:
                     case masked_instr is
 
@@ -126,10 +169,12 @@ begin
                             cur_cpu_mode := CPU_MODE_EXECUTE;
 
                         when BEQ_TEMPLATE =>
+                            new_pc_addr_value := pc_nat + cur_immed_value;
                             cur_instr_mode := INSTR_MODE_BEQ;
                             cur_cpu_mode := CPU_MODE_EXECUTE;
 
                         when BNE_TEMPLATE =>
+                            new_pc_addr_value := pc_nat + cur_immed_value;
                             cur_instr_mode := INSTR_MODE_BNE;
                             cur_cpu_mode := CPU_MODE_EXECUTE;
 
@@ -139,6 +184,8 @@ begin
 
                         when NULL_WORD =>
                             if( ( cur_instr and INSTR_FUNCT_MASK ) = ADD_TEMPLATE ) then
+                                cur_rs_value := to_integer( reg_file_var( cur_rs_indx ) );
+                                cur_rt_value := to_integer( reg_file_var( cur_rt_indx ) );
                                 cur_instr_mode := INSTR_MODE_ADD;
                                 cur_cpu_mode := CPU_MODE_EXECUTE;
                             else
@@ -168,21 +215,32 @@ begin
                     case cur_instr_mode is
 
                         when INSTR_MODE_LW =>
+                            final_addr_data_value := cur_rt_value + cur_immed_value;
                             cur_cpu_mode := CPU_MODE_MEMORY_MODIFY;
 
                         when INSTR_MODE_SW =>
+                            final_addr_data_value := cur_rt_value + cur_immed_value;
                             cur_cpu_mode := CPU_MODE_MEMORY_MODIFY;
 
                         when INSTR_MODE_ADD =>
+                            final_add_value := cur_rt_value + cur_rs_value;
                             cur_cpu_mode := CPU_MODE_MEMORY_MODIFY;
 
                         when INSTR_MODE_BEQ =>
-                            cur_cpu_mode := CPU_MODE_MEMORY_MODIFY;
+                            if( reg_file_var( cur_rs_indx ) = NULL_WORD ) then
+                                pc_nat := pc_nat + cur_immed_value;
+                            end if;
+                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
 
                         when INSTR_MODE_BNE =>
-                            cur_cpu_mode := CPU_MODE_MEMORY_MODIFY;
+                            if( not( reg_file_var( cur_rs_indx ) = NULL_WORD ) ) then
+                                pc_nat := pc_nat + cur_immed_value;
+                            end if;
+                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
 
                         when INSTR_MODE_LUI =>
+                            lui_word := to_signed( cur_immed_value, WORD_SIZE );
+                            reg_file_var( cur_rt_indx ) := to_signed( cur_rt_value, WORD_SIZE ) or lui_word;
                             cur_cpu_mode := CPU_MODE_MEMORY_MODIFY;
 
                         when INSTR_MODE_NOP =>  
@@ -200,28 +258,75 @@ begin
 
                 when CPU_MODE_MEMORY_MODIFY =>
 
+                    final_addr_data := to_unsigned( final_addr_data_value, WORD_SIZE );
+
                     memory_modify_cases:
                     case cur_instr_mode is
 
                         when INSTR_MODE_LW =>
-                            cur_cpu_mode := CPU_MODE_WRITE_BACK;
+                            
+                            if( memory_modify_in_progress = false ) then
+
+                                memory_modify_in_progress := true;
+                                
+                                addr_instr <= NULL_ADDR;
+                                access_instr <= '0';
+                                addr_data <= final_addr_data;
+                                data <= WEAK_WORD;
+                                access_data <= '1';
+                                write_data <= '0'; 
+
+                            else
+
+                                if( sample_ready_data = '1' ) then
+
+                                    final_lw_data := sample_data;
+                                    memory_modify_in_progress := false;
+                                    cur_cpu_mode := CPU_MODE_WRITE_BACK;
+
+                                end if;
+
+                                addr_instr <= NULL_ADDR;
+                                access_instr <= '0';
+                                addr_data <= NULL_ADDR;
+                                data <= WEAK_WORD;
+                                access_data <= '0';
+                                write_data <= '0';
+
+                            end if;
 
                         when INSTR_MODE_SW =>
-                            cur_cpu_mode := CPU_MODE_WRITE_BACK;
+                            
+                            if( memory_modify_in_progress = false ) then
 
-                        when INSTR_MODE_ADD =>
-                            cur_cpu_mode := CPU_MODE_WRITE_BACK;
+                                memory_modify_in_progress := true;
+                                
+                                addr_instr <= NULL_ADDR;
+                                access_instr <= '0';
+                                addr_data <= final_addr_data;
+                                data <= final_sw_data;
+                                access_data <= '1';
+                                write_data <= '1'; 
 
-                        when INSTR_MODE_BEQ =>
-                            cur_cpu_mode := CPU_MODE_WRITE_BACK;
+                            else
 
-                        when INSTR_MODE_BNE =>
-                            cur_cpu_mode := CPU_MODE_WRITE_BACK;
+                                if( sample_ready_data = '1' ) then
 
-                        when INSTR_MODE_LUI =>
-                            cur_cpu_mode := CPU_MODE_WRITE_BACK;
+                                    memory_modify_in_progress := false;
+                                    cur_cpu_mode := CPU_MODE_WRITE_BACK;
 
-                        when INSTR_MODE_NOP =>  
+                                end if;
+
+                                    addr_instr <= NULL_ADDR;
+                                    access_instr <= '0';
+                                    addr_data <= NULL_ADDR;
+                                    data <= WEAK_WORD;
+                                    access_data <= '0';
+                                    write_data <= '0';
+
+                            end if;
+
+                        when others =>  
                             cur_cpu_mode := CPU_MODE_WRITE_BACK;
 
                     end case memory_modify_cases;
@@ -233,27 +338,16 @@ begin
                     case cur_instr_mode is
 
                         when INSTR_MODE_LW =>
-                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
-
-                        when INSTR_MODE_SW =>
-                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
+                            reg_file_var( cur_rt_indx ) := final_lw_data;
 
                         when INSTR_MODE_ADD =>
-                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
+                            reg_file_var( cur_rd_indx ) := to_signed( final_add_value, WORD_SIZE );
 
-                        when INSTR_MODE_BEQ =>
-                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
-
-                        when INSTR_MODE_BNE =>
-                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
-
-                        when INSTR_MODE_LUI =>
-                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
-
-                        when INSTR_MODE_NOP =>  
-                            cur_cpu_mode := CPU_MODE_INSTR_FETCH;
+                        when others =>
 
                     end case write_back_cases;
+                            
+                    cur_cpu_mode := CPU_MODE_INSTR_FETCH;
 
                     addr_instr <= NULL_ADDR;
                     access_instr <= '0';
@@ -264,6 +358,7 @@ begin
 
 
                 when CPU_MODE_RESET =>
+
                     pc_nat := 0;
                     cur_cpu_mode := CPU_MODE_INSTR_FETCH;
                         
