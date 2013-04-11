@@ -57,41 +57,24 @@ begin
         procedure reset_cpu is
         begin
 
-            if clk = '0' then
-                wait on clk;
-                wait for CLK_PERIOD;
-            else
-                wait for ( CLK_PERIOD / 2 );
-            end if;
+            wait until clk = '1';
 
             reset <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             reset <= '0';
-            wait for ( CLK_PERIOD / 2 );
 
         end procedure reset_cpu;
 
 
         procedure test_reset is
         begin
-            
-            if clk = '0' then
-                wait on clk;
-                wait for CLK_PERIOD;
-            else
-                wait for ( CLK_PERIOD / 2 );
-            end if;
 
-            reset <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait until clk = '1';
 
-            reset <= '0';
-            wait for ( CLK_PERIOD / 2 );
-            
-            if access_instr = '0' then
-                wait on access_instr;
-            end if;
+            reset_cpu;
+
+            wait until access_instr = '1';
 
             assert( addr_instr = NULL_ADDR )
                 report "ERROR: Bad CPU program counter output after reset."
@@ -100,7 +83,7 @@ begin
 
             instr <= INSTR_NOP;
             ready_instr <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             instr <= NULL_WORD;
             ready_instr <= '0';
@@ -118,23 +101,18 @@ begin
             ready_instr <= '0';
             data <= WEAK_WORD;
             ready_data <= '0';
+            wait until access_instr = '1';
 
-            if access_instr = '0' then
-                wait on access_instr;
-            end if;
             pc_orig_nat := to_integer( addr_instr );
             wait for CLK_PERIOD;
 
             instr <= INSTR_NOP;
             ready_instr <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             instr <= NULL_WORD;
             ready_instr <= '0';
-            
-            if access_instr = '0' then
-                wait on access_instr;
-            end if;
+            wait until access_instr = '1';
 
             assert( to_integer( addr_instr ) = pc_orig_nat + WORD_BYTE_SIZE )
                 report "ERROR: Bad sequential CPU program counter output."
@@ -143,7 +121,7 @@ begin
 
             instr <= INSTR_NOP;
             ready_instr <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             instr <= NULL_WORD;
             ready_instr <= '0';
@@ -165,6 +143,8 @@ begin
         wait for CLK_PERIOD;
 
         println( "TEST:     Starting reset tests." );
+        test_reset;
+        wait for ( 10 * CLK_PERIOD );
         test_reset;
         println( "TEST:     End of reset tests." );
 
