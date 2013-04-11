@@ -3,6 +3,9 @@
 
 use work.datapath_types.all;
 
+library std;
+use std.textio.all;
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
@@ -137,15 +140,40 @@ begin
                                       addr_indx     : out natural ) is
 
             variable block_indx_mask : addr;
+            variable block_indx_addr : addr;
             variable addr_indx_mask : addr;
+            variable block_indx_nat : natural;
+            variable addr_indx_nat : natural;
+            variable block_indx_mask_line : line;
+            variable block_indx_line : line;
 
         begin
 
-            block_indx_mask := to_unsigned( cache_size - 1, ADDR_SIZE );
-            block_indx := to_integer( ( block_indx_mask and sample_addr ) srl 8 );
+            block_indx_mask := get_addr_mask( cache_size * 2 ) xor get_addr_mask( MEM_SIZE );
+            block_indx_addr := block_indx_mask and sample_addr;
+
+            for block_indx_addr_indx in block_indx_addr'range loop
+                if( block_indx_addr( block_indx_addr'right ) = '0' ) then
+                    block_indx_addr := block_indx_mask srl 1;
+                end if;
+            end loop;
+
+            block_indx_nat := to_integer( block_indx_addr );
+
+            assert( block_indx_nat < NUM_BLOCKS )
+                report "ERROR: Bad block_indx output from get_cache_location."
+                severity error;
+
+            block_indx := block_indx_nat;
 
             addr_indx_mask := to_unsigned( BLOCK_BYTE_SIZE - 1, ADDR_SIZE );
-            addr_indx := to_integer( ( addr_indx_mask and sample_addr ) srl 2 );
+            addr_indx_nat := to_integer( ( addr_indx_mask and sample_addr ) srl 2 );
+
+            assert( addr_indx_nat < BLOCK_WORD_SIZE )
+                report "ERROR: Bad addr_indx output from get_cache_location."
+                severity error;
+
+            addr_indx := addr_indx_nat;
 
         end procedure get_cache_location;
 
