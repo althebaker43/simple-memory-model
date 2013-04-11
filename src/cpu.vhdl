@@ -53,6 +53,12 @@ begin
 
     operate : process( clk ) is
 
+        -- Input sampling variables
+        variable sample_instr : word := NULL_WORD;
+        variable sample_ready_instr : std_logic := '0';
+        variable sample_data : word := NULL_WORD;
+        variable sample_ready_data : std_logic := '0';
+
         -- General purpose variables
         variable cur_cpu_mode : cpu_mode := CPU_MODE_RESET;
         variable pc_nat : natural := 0;
@@ -70,17 +76,13 @@ begin
 
         if clk = '1' then
 
-            if reset = '1' then
-                cur_cpu_mode := CPU_MODE_RESET;
-            end if;
-
             case cur_cpu_mode is
 
                 when CPU_MODE_INSTR_FETCH =>
 
-                    if ready_instr = '1' then
+                    if sample_ready_instr = '1' then
 
-                        cur_instr := instr;
+                        cur_instr := sample_instr;
                         pc_nat := pc_nat + WORD_BYTE_SIZE;
                         instr_request_placed := false;
                         cur_cpu_mode := CPU_MODE_INSTR_DECODE;
@@ -89,7 +91,21 @@ begin
 
                         addr_instr <= to_unsigned( pc_nat, ADDR_SIZE );
                         access_instr <= '1';
+                        addr_data <= NULL_ADDR;
+                        data <= WEAK_WORD;
+                        access_data <= '0';
+                        write_data <= '0'; 
+
                         instr_request_placed := true;
+
+                    else
+
+                        addr_instr <= NULL_ADDR;
+                        access_instr <= '0';
+                        addr_data <= NULL_ADDR;
+                        data <= WEAK_WORD;
+                        access_data <= '0';
+                        write_data <= '0'; 
 
                     end if;
 
@@ -138,6 +154,13 @@ begin
 
                     end case instruction_decode_cases;
 
+                    addr_instr <= NULL_ADDR;
+                    access_instr <= '0';
+                    addr_data <= NULL_ADDR;
+                    data <= WEAK_WORD;
+                    access_data <= '0';
+                    write_data <= '0'; 
+
 
                 when CPU_MODE_EXECUTE =>
 
@@ -166,6 +189,13 @@ begin
                             cur_cpu_mode := CPU_MODE_MEMORY_MODIFY;
 
                     end case execute_cases;
+
+                    addr_instr <= NULL_ADDR;
+                    access_instr <= '0';
+                    addr_data <= NULL_ADDR;
+                    data <= WEAK_WORD;
+                    access_data <= '0';
+                    write_data <= '0'; 
 
 
                 when CPU_MODE_MEMORY_MODIFY =>
@@ -225,6 +255,13 @@ begin
 
                     end case write_back_cases;
 
+                    addr_instr <= NULL_ADDR;
+                    access_instr <= '0';
+                    addr_data <= NULL_ADDR;
+                    data <= WEAK_WORD;
+                    access_data <= '0';
+                    write_data <= '0'; 
+
 
                 when CPU_MODE_RESET =>
                     pc_nat := 0;
@@ -232,16 +269,26 @@ begin
                         
                     instr_request_placed := false;
 
+                    addr_instr <= NULL_ADDR;
+                    access_instr <= '0';
+                    addr_data <= NULL_ADDR;
+                    data <= WEAK_WORD;
+                    access_data <= '0';
+                    write_data <= '0'; 
+
             end case;
 
         else
 
-            addr_instr <= NULL_ADDR;
-            access_instr <= '0';
-            addr_data <= NULL_ADDR;
-            data <= WEAK_WORD;
-            access_data <= '0';
-            write_data <= '0'; 
+            if reset = '1' then
+                cur_cpu_mode := CPU_MODE_RESET;
+            end if;
+
+            sample_instr := instr;
+            sample_ready_instr := ready_instr;
+
+            sample_data := data;
+            sample_ready_data := ready_data;
 
         end if;
 

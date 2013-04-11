@@ -2,6 +2,7 @@ use work.datapath_types.all;
 
 library IEEE;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 
 entity test_misc is
 end entity test_misc;
@@ -19,39 +20,65 @@ begin
 
     test : process is 
 
-        variable input_addr : addr;
+        variable input_addr : addr := NULL_ADDR;
+        variable exp_addr_mask_value : addr := NULL_ADDR;
+        variable act_addr_mask_value : addr := NULL_ADDR;
         variable addr_substring_value : natural := 0;
 
     begin
 
-        println( "TEST: Starting clk_gen tests." );
+        println( "TEST: Starting misc tests." );
+
+        println( "TEST:     Starting clk_gen tests." );
 
         wait for CLK_PERIOD;
         en <= '1';
 
         wait for ( CLK_PERIOD / 4 );
         assert( clk = '1' )
-            report "TEST: Bad clk_gen output."
+            report "ERROR: Bad clk_gen output."
             severity error;
 
         wait for ( CLK_PERIOD / 2 );
         assert( clk = '0' )
-            report "TEST: Bad clk_gen output."
+            report "ERROR: Bad clk_gen output."
             severity error;
 
         en <= '0';
         wait for ( CLK_PERIOD / 2 );
 
-        println( "TEST: End of clk_gen tests." );
+        println( "TEST:     End of clk_gen tests." );
 
-        println( "TEST: Starting get_addr_substring_value tests." );
+        println( "TEST:     Starting get_addr_mask tests." );
+
+        act_addr_mask_value := get_addr_mask( 128 );
+        exp_addr_mask_value := X"FF_FF_FF_80";
+        assert( act_addr_mask_value = exp_addr_mask_value )
+            report "ERROR: Bad get_addr_mask output."
+            severity error;
+
+        act_addr_mask_value := get_addr_mask( 512 );
+        exp_addr_mask_value := X"FF_FF_FE_00";
+        assert( act_addr_mask_value = exp_addr_mask_value )
+            report "ERROR: Bad get_addr_mask output."
+            severity error;
+
+        act_addr_mask_value := get_addr_mask( 1024 );
+        exp_addr_mask_value := X"FF_FF_FC_00";
+        assert( act_addr_mask_value = exp_addr_mask_value )
+            report "ERROR: Bad get_addr_mask output."
+            severity error;
+
+        println( "TEST:     End of get_addr_mask tests." );
+
+        println( "TEST:     Starting get_addr_substring_value tests." );
 
         input_addr := X"00_00_04_00";
         addr_substring_value := get_addr_substring_value( input_addr,
                                                           8,
                                                           8 );
         assert( addr_substring_value = 4 )
-            report "TEST: Bad get_addr_substring_value output."
+            report "ERROR: Bad get_addr_substring_value output."
             severity error;
 
         input_addr := X"00_11_00_00";
@@ -59,10 +86,12 @@ begin
                                                           16,
                                                           8 );
         assert( addr_substring_value = 17 )
-            report "TEST: Bad get_addr_substring_value output."
+            report "ERROR: Bad get_addr_substring_value output."
             severity error;
 
-        println( "TEST: End of get_addr_substring_value tests." );
+        println( "TEST:     End of get_addr_substring_value tests." );
+        
+        println( "TEST: End of misc tests." );
 
         wait;
 

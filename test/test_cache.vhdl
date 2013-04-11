@@ -80,15 +80,13 @@ begin
                                        sample_addr  : in addr ) is
         begin
 
-            --assert false
-            --    report "INFO: Writing data."
-            --    severity note;
+            wait until clk = '1';
 
             cpu_addr <= sample_addr;
             cpu_data <= sample_data;
             cpu_access <= '1';
             cpu_write <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             cpu_addr <= NULL_ADDR;
             cpu_data <= WEAK_WORD;
@@ -110,10 +108,6 @@ begin
                     mem_data_indx := to_integer( mem_addr srl 2 );
 
                     if mem_write = '1' then
-
-                        --assert false
-                        --    report "INFO: Serving memory write request from cache."
-                        --    severity note;
                         
                         mem_data_sample := mem_data;
 
@@ -121,21 +115,17 @@ begin
 
                         mem_storage( mem_data_indx ) := mem_data_sample;
                         mem_ready <= '1';
-                        wait for ( CLK_PERIOD / 2 );
+                        wait for CLK_PERIOD;
 
                         mem_data <= WEAK_WORD;
                         mem_ready <= '0';
 
                     else
 
-                        --assert false
-                        --    report "INFO: Serving memory read request from cache."
-                        --    severity note;
-
                         wait for ( ( MEM_READ_ACCESS_DELAY + MEM_READ_ACCESS_DELAY ) * CLK_PERIOD );
                         mem_data <= mem_storage( mem_data_indx );
                         mem_ready <= '1';
-                        wait for ( CLK_PERIOD / 2 );
+                        wait for CLK_PERIOD;
 
                         mem_data <= WEAK_WORD;
                         mem_ready <= '0';
@@ -146,17 +136,13 @@ begin
 
             end loop;
 
-            --assert false
-            --    report "INFO: Reading data."
-            --    severity note;
-
-            wait for CLK_PERIOD;
+            wait until clk = '1';
 
             cpu_addr <= sample_addr;
             cpu_data <= WEAK_WORD;
             cpu_access <= '1';
             cpu_write <= '0';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             cpu_addr <= NULL_ADDR;
             cpu_data <= WEAK_WORD;
@@ -179,31 +165,23 @@ begin
 
                     if mem_write = '1' then
 
-                        --assert false
-                        --    report "INFO: Serving memory write request from cache."
-                        --    severity note;
-
                         mem_data_sample := mem_data;
 
                         wait for ( ( MEM_WRITE_ACCESS_DELAY + MEM_WRITE_ACCESS_DELAY ) * CLK_PERIOD );
 
                         mem_storage( mem_data_indx ) := mem_data_sample;
                         mem_ready <= '1';
-                        wait for ( CLK_PERIOD / 2 );
+                        wait for CLK_PERIOD;
 
                         mem_data <= WEAK_WORD;
                         mem_ready <= '0';
 
                     else
 
-                        --assert false
-                        --    report "INFO: Serving memory read request from cache."
-                        --    severity note;
-
                         wait for ( ( MEM_READ_ACCESS_DELAY + MEM_READ_ACCESS_DELAY ) * CLK_PERIOD );
                         mem_data <= mem_storage( mem_data_indx );
                         mem_ready <= '1';
-                        wait for ( CLK_PERIOD / 2 );
+                        wait for CLK_PERIOD;
 
                         mem_data <= WEAK_WORD;
                         mem_ready <= '0';
@@ -217,15 +195,12 @@ begin
             assert( cpu_data = sample_data )
                 report "ERROR: Bad cpu cache output."
                 severity error;
-            wait for CLK_PERIOD;
 
         end procedure;
 
     begin
-        
-        assert false
-            report "TEST: Starting cache_behav tests."
-            severity note;
+ 
+        println( "TEST: Starting cache tests." );       
 
         cpu_addr <= NULL_ADDR;
         cpu_data <= WEAK_WORD;
@@ -238,9 +213,7 @@ begin
         clk_en <= '1';
         wait for CLK_PERIOD;
         
-        assert false
-            report "TEST: Testing first block placement."
-            severity note;
+        println( "TEST:     Starting first block tests." );
 
         test_data_retention( X"55_55_55_55",
                              X"00_00_00_04" );
@@ -254,9 +227,9 @@ begin
         test_data_retention( X"11_11_11_11",
                              X"00_00_00_18" );
         
-        assert false
-            report "TEST: Testing block replacement."
-            severity note;
+        println( "TEST:     End of first block tests." );       
+        
+        println( "TEST:     Starting block replacement tests." );
 
         test_data_retention( X"44_44_44_44",
                              X"00_00_00_20" );
@@ -264,19 +237,20 @@ begin
         test_data_retention( X"12_34_56_78",
                              X"00_00_00_3C" );
         
-        assert false
-            report "TEST: Testing other block placements."
-            severity note;
+        println( "TEST:     End of block replacement tests." );
+        
+        
+        println( "TEST:     Starting other block tests." );
 
         test_data_retention( X"87_65_43_21",
                              X"00_00_02_00" );
+        
+        println( "TEST:     End of other block tests." );
 
         clk_en <= '0';
         wait for CLK_PERIOD;
         
-        assert false
-            report "TEST: End of cache_behav tests."
-            severity note;
+        println( "TEST: End of cache tests." );       
 
         wait;
 

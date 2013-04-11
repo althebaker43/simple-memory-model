@@ -62,10 +62,6 @@ architecture mem_behav of mem is
 
 begin
 
-    ready_instr <= '0';
-    ready_data <= '0';
-    data <= WEAK_WORD;
-
     operate : process( clk_in ) is
 
         variable read_instr_operation : boolean := false;
@@ -143,61 +139,91 @@ begin
             if read_instr_operation = true then
 
                 if read_instr_countdown = 0 then
+
                     instr <= get_random_instr( read_instr_addr );
                     ready_instr <= '1';
                     read_instr_operation := false;
+
                 else
+
                     read_instr_countdown := read_instr_countdown - 1;
+                    instr <= NULL_WORD;
+                    ready_instr <= '0';
+
                 end if;
 
-            elsif access_instr = '1' then
+            else
 
-                read_instr_operation := true;
-                read_instr_addr := addr_instr;
-                read_instr_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
+                instr <= NULL_WORD;
                 ready_instr <= '0';
 
             end if;
 
-
             if read_data_operation = true then
 
                 if read_data_countdown = 0 then
+
                     data <= storage_var( read_data_pos );
                     ready_data <= '1';
                     read_data_operation := false;
+
                 else
+
                     read_data_countdown := read_data_countdown - 1;
+                    data <= WEAK_WORD;
+                    ready_data <= '0';
+
                 end if;
 
             elsif write_data_operation = true then
 
                 if write_data_countdown = 0 then
+
                     storage_var( write_data_pos ) := write_data_input;
                     ready_data <= '1';
                     write_data_operation := false;
+
                 else
+
                     write_data_countdown := write_data_countdown - 1;
+                    data <= WEAK_WORD;
+                    ready_data <= '0';
+
                 end if;
-
-            elsif access_data = '1' then
-
-                if write_data = '1' then
-                    write_data_operation := true;
-                    write_data_pos := to_integer( addr_data srl 2 );
-                    write_data_input := data;
-                    write_data_countdown := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
-                else
-                    read_data_operation := true;
-                    read_data_pos := to_integer( addr_data srl 2 );
-                    read_data_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
-                end if;
-
-                ready_data <= '0';
 
             else
 
                 data <= WEAK_WORD;
+                ready_data <= '0';
+
+            end if;
+
+        else
+
+            if access_instr = '1' then
+
+                read_instr_operation := true;
+                read_instr_addr := addr_instr;
+                read_instr_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
+
+            end if;
+
+            if access_data = '1' then
+
+                if write_data = '1' then
+
+                    write_data_operation := true;
+                    write_data_pos := to_integer( addr_data srl 2 );
+                    write_data_input := data;
+                    write_data_countdown := WRITE_ACCESS_DELAY + WRITE_ADDNL_DELAY;
+
+                else
+
+                    read_data_operation := true;
+                    read_data_pos := to_integer( addr_data srl 2 );
+                    read_data_countdown := READ_ACCESS_DELAY + READ_ADDNL_DELAY;
+
+                end if;
 
             end if;
 

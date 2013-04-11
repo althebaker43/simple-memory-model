@@ -77,13 +77,15 @@ begin
                                          instr_template : in word ) is
         begin
 
+            wait until clk = '1';
+
             addr_instr <= min_bound;
             access_instr <= '1';
             wait for CLK_PERIOD;
 
             addr_instr <= NULL_ADDR;
             access_instr <= '0';
-            wait on ready_instr;
+            wait until ready_instr = '1';
             
             if instr_template = ADD_TEMPLATE then
 
@@ -101,13 +103,15 @@ begin
                 
             end if;
 
+            wait until clk = '1';
+
             addr_instr <= max_bound;
             access_instr <= '1';
             wait for CLK_PERIOD;
 
             addr_instr <= NULL_ADDR;
             access_instr <= '0';
-            wait on ready_instr;
+            wait until ready_instr = '1';
             
             if instr_template = ADD_TEMPLATE then
 
@@ -131,6 +135,8 @@ begin
                                        sample_addr  : in addr ) is
         begin
 
+            wait until clk = '1';
+
             addr_data <= sample_addr;
             data <= sample_data;
             access_data <= '1';
@@ -141,8 +147,7 @@ begin
             data <= NULL_WORD;
             access_data <= '0';
             write_data <= '0';
-            wait on ready_data;
-            wait for CLK_PERIOD;
+            wait until ready_data = '1';
 
             data <= WEAK_WORD;
             addr_data <= sample_addr;
@@ -154,7 +159,7 @@ begin
             addr_data <= NULL_ADDR;
             access_data <= '0';
             write_data <= '0';
-            wait on ready_data;
+            wait until ready_data = '1';
 
             assert( data = sample_data )
                 report "ERROR: Bad data output."
@@ -165,8 +170,8 @@ begin
 
     begin
         
-        println( "TEST: Starting mem_behav test." );
-        
+        println( "TEST: Starting mem tests." );
+
         addr_data <= NULL_ADDR;
         data <= NULL_WORD;
         access_data <= '0';
@@ -177,7 +182,7 @@ begin
         clk_en <= '1';
         wait for CLK_PERIOD;
         
-        println( "TEST:     Starting instruction bound tests." );
+        println( "TEST:     Starting instruction boundaries tests." );
 
         println( "TEST:         Testing NOP bounds." );
         test_instr_mem_bounds( NOP_RANGE_MIN,
@@ -213,18 +218,20 @@ begin
         test_instr_mem_bounds( LUI_RANGE_MIN,
                                LUI_RANGE_MAX,
                                LUI_TEMPLATE );
-
-        println( "TEST:     End of instruction bound tests." );
+        
+        println( "TEST:     End of instruction boundaries tests." );
 
         println( "TEST:     Starting data retention tests." );
+        
         test_data_retention( X"55_55_55_55",
                              DATA_RANGE_MIN );
+
         println( "TEST:     End of data retention tests." );
 
         clk_en <= '0';
         wait for CLK_PERIOD;
         
-        println( "TEST: End of mem_behav test." );
+        println( "TEST: End of mem tests." );
 
         wait;
 
