@@ -32,6 +32,24 @@ begin
                   instr_hit,
                   data_hit );
 
+    instr_hit_detect : process( instr_hit ) is
+    begin
+
+        if( instr_hit = '1' ) then
+            println( "INFO:     Instruction cache hit detected." );
+        end if;
+
+    end process;
+
+    data_hit_detect : process( data_hit ) is
+    begin
+
+        if( instr_hit = '1' ) then
+            println( "INFO:     Data cache hit detected." );
+        end if;
+
+    end process;
+
     test : process is
 
         procedure test_sequential is

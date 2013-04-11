@@ -36,7 +36,8 @@ CC = ghdl
 ## Global Recipies
 
 runs : run_misc \
-       $(RUNS)
+       $(RUNS) \
+	   run_$(TARGET)
 
 tests : $(TEST_BINS)
 

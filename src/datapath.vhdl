@@ -147,15 +147,6 @@ begin
                   mem_access_instr,
                   mem_ready_instr );
 
-    operate : process( clk ) is
-    begin
-
-        if clk = '1' then
-
-        end if;
-
-    end process operate;
-
     instr_access : process( cpu_access_instr ) is
     begin
 
@@ -168,6 +159,5 @@ begin
         access_instr <= cpu_access_instr;
 
     end process instr_access;
-
 
 end architecture datapath_struct;
