@@ -17,10 +17,9 @@ TARGET = datapath
 
 SECTIONS = cpu \
            cache \
-           mem \
-           misc
+           mem
 
-SOURCES := $(SECTIONS:%=%.vhdl)
+SOURCES := $(SECTIONS:%=%.vhdl) 
 
 SECTION_OBJS := $(SECTIONS:%=%.o)
 
@@ -36,7 +35,9 @@ CC = ghdl
 
 ## Global Recipies
 
-runs : $(RUNS)
+runs : run_misc \
+       $(RUNS) \
+	   run_$(TARGET)
 
 tests : $(TEST_BINS)
 
@@ -52,8 +53,44 @@ $(RUNS) : run_% : test_% | \
 		--stop-time=10us \
 		--vcd=$(OUT_DIR)/$@.vcd
 
+run_$(TARGET) : test_$(TARGET) | \
+                $(OUT_DIR) \
+                $(PLOT_DIR)
+	./$(BIN_DIR)/$(notdir $<) \
+		--assert-level=warning \
+		--stop-time=1ms \
+		--vcd=$(OUT_DIR)/$@.vcd
+
+run_misc : test_misc | \
+           $(OUT_DIR) \
+           $(PLOT_DIR)
+	./$(BIN_DIR)/$(notdir $<) \
+		--assert-level=warning \
+		--stop-time=10us \
+		--vcd=$(OUT_DIR)/$@.vcd
+
 $(TEST_BINS) : test_% : test_%.o | \
                         $(BIN_DIR)
+	$(CC) \
+		-e \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		-o $(BIN_DIR)/$@ \
+		$@
+
+test_$(TARGET) : test_$(TARGET).o | \
+                 $(BIN_DIR)
+	$(CC) \
+		-e \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		-o $(BIN_DIR)/$@ \
+		$@
+
+test_misc : test_misc.o | \
+            $(BIN_DIR)
 	$(CC) \
 		-e \
 		-g \
@@ -72,7 +109,27 @@ $(TEST_OBJS) : test_%.o : test_%.vhdl \
 		--workdir=$(OBJ_DIR) \
 		$<
 
-$(SECTION_OBJS) : %.o : misc.vhdl \
+test_$(TARGET).o : test_$(TARGET).vhdl \
+                   $(TARGET).o | \
+                   $(OBJ_DIR)
+	$(CC) \
+		-a \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		$<
+
+test_misc.o : test_misc.vhdl \
+              misc.o | \
+              $(OBJ_DIR)
+	$(CC) \
+		-a \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		$<
+
+$(SECTION_OBJS) : %.o : misc.o \
                         %.vhdl \
                         ctags | \
                         $(OBJ_DIR)
@@ -81,7 +138,28 @@ $(SECTION_OBJS) : %.o : misc.vhdl \
 		-g \
 		--work=$(TARGET) \
 		--workdir=$(OBJ_DIR) \
-		$(SRC_DIR)/misc.vhdl $(SRC_DIR)/$*.vhdl
+		$(SRC_DIR)/$*.vhdl
+
+misc.o : misc.vhdl \
+         ctags | \
+		 $(OBJ_DIR)
+	$(CC) \
+		-a \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		$(SRC_DIR)/misc.vhdl
+
+$(TARGET).o : misc.o \
+              $(SECTION_OBJS) \
+              ctags | \
+              $(OBJ_DIR)
+	$(CC) \
+		-a \
+		-g \
+		--work=$(TARGET) \
+		--workdir=$(OBJ_DIR) \
+		$(SRC_DIR)/$(TARGET).vhdl
 
 
 ## Documentation ##

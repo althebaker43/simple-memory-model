@@ -43,7 +43,7 @@ package datapath_types is
     function get_addr_mask( addr_nat : in natural ) return addr;
 
     --! @brief Returns the value of a substring of an address
-    function get_addr_substring_value( sample_addr  : in addr;
+    function get_word_substring_value( sample_word  : in word;
                                        start_indx   : in natural;
                                        num_bits     : in positive ) return natural;
 
@@ -68,21 +68,26 @@ package datapath_types is
     constant INSTR_SHMT_MASK : word     := B"000000_00000_00000_00000_11111_000000";
     constant INSTR_FUNCT_MASK : word    := B"000000_00000_00000_00000_00000_111111";
     
-    constant INSTR_RS_POS : natural     := 21;
-    constant INSTR_RT_POS : natural     := 16;
-    constant INSTR_IMMED_POS : natural  := 0;
-    constant INSTR_RD_RD_POS : natural  := 11;
-    constant INSTR_SHMT_POS : natural   := 6;
-    constant INSTR_FUNCT_POS : natural  := 0;
+    constant INSTR_RS_POS       : natural := 21;
+    constant INSTR_RT_POS       : natural := 16;
+    constant INSTR_IMMED_POS    : natural := 0;
+    constant INSTR_RD_POS       : natural := 11;
+    constant INSTR_SHMT_POS     : natural := 6;
+    constant INSTR_FUNCT_POS    : natural := 0;
 
-    constant INSTR_RS_SIZE : natural    := 5;
-    constant INSTR_RT_SIZE : natural    := 5;
-    constant INSTR_IMMED_SIZE : natural := 16;
-    constant INSTR_RD_SIZE : natural    := 5;
-    constant INSTR_SHMT_SIZE : natural  := 5;
-    constant INSTR_FUNCT_SIZE : natural := 6;
+    constant INSTR_RS_SIZE      : natural := 5;
+    constant INSTR_RT_SIZE      : natural := 5;
+    constant INSTR_IMMED_SIZE   : natural := 16;
+    constant INSTR_RD_SIZE      : natural := 5;
+    constant INSTR_SHMT_SIZE    : natural := 5;
+    constant INSTR_FUNCT_SIZE   : natural := 6;
 
     procedure println( print_string : in string );
+
+    procedure get_random_nat( m_z_nat : inout natural;
+                              m_w_nat : inout natural;
+                              max_value : in natural;
+                              random_value : out natural );
 
 end package datapath_types;
 
@@ -95,7 +100,9 @@ package body datapath_types is
     begin
 
         for word_indx in weak_word'range loop
-            weak_word( word_indx ) := 'H';
+
+            weak_word( word_indx ) := 'L';
+
         end loop;
 
         return weak_word;
@@ -129,29 +136,29 @@ package body datapath_types is
     end function get_addr_mask;
         
 
-    function get_addr_substring_value( sample_addr  : in addr;
+    function get_word_substring_value( sample_word  : in word;
                                        start_indx   : in natural;
                                        num_bits     : in positive ) return natural is
 
-        variable mask_addr : addr := NULL_ADDR;
+        variable mask_word : word := NULL_WORD;
         variable end_indx : natural := start_indx + num_bits - 1;
-        variable masked_result : addr := NULL_ADDR;
+        variable masked_result : word := NULL_WORD;
 
         variable result : natural := 0;
 
     begin
 
-        for mask_addr_indx in start_indx to end_indx loop
-            mask_addr( mask_addr_indx ) := '1';
+        for mask_word_indx in start_indx to end_indx loop
+            mask_word( mask_word_indx ) := '1';
         end loop;
 
-        masked_result := mask_addr and sample_addr;
+        masked_result := mask_word and sample_word;
 
         result := to_integer( masked_result srl start_indx );
 
         return result;
 
-    end function get_addr_substring_value;
+    end function get_word_substring_value;
 
     
     procedure println( print_string : in string ) is
@@ -164,6 +171,35 @@ package body datapath_types is
         writeline( OUTPUT, print_line );
 
     end println;
+
+
+    --! @brief Multiply-with-Carry Random Number Generator
+    --!
+    --! @author George Marsaglia
+    procedure get_random_nat( m_z_nat : inout natural;
+                              m_w_nat : inout natural;
+                              max_value : in natural;
+                              random_value : out natural ) is
+
+        variable m_w : word := to_signed( m_w_nat, WORD_SIZE );
+        variable m_z : word := to_signed( m_z_nat, WORD_SIZE );
+
+    begin
+
+        m_z := m_z srl 16;
+        m_z := m_z and to_signed( 65535, WORD_SIZE );
+        m_z := to_signed( ( to_integer( m_z ) * 36969 ), WORD_SIZE );
+        m_z_nat := to_integer( m_z );
+
+        m_w := m_w srl 16;
+        m_w := m_w and to_signed( 65535, WORD_SIZE );
+        m_w := to_signed( ( to_integer( m_w ) * 18000 ), WORD_SIZE );
+        m_w_nat := to_integer( m_w );
+
+        random_value := ( to_integer( m_z sll 16 ) + to_integer( m_w ) ) mod max_value;
+
+    end procedure get_random_nat;
+
 
 end package body;
 

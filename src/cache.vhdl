@@ -99,6 +99,7 @@ begin
 
         variable cpu_read_operation : boolean := false;
         variable cpu_write_operation : boolean := false;
+        variable hit_possible : boolean := false;
         
         variable mem_read_operation : boolean := false;
         variable mem_read_in_progress : boolean := false;
@@ -154,7 +155,7 @@ begin
 
             for block_indx_addr_indx in block_indx_addr'range loop
                 if( block_indx_addr( block_indx_addr'right ) = '0' ) then
-                    block_indx_addr := block_indx_mask srl 1;
+                    block_indx_addr := block_indx_addr srl 1;
                 end if;
             end loop;
 
@@ -509,8 +510,6 @@ begin
                                  cpu_sample_data );
 
                     if cur_present = true then
-
-                        --println( "INFO: Cache read hit." );
                             
                         cpu_read_operation := false;
                         
@@ -520,7 +519,11 @@ begin
                         mem_data <= WEAK_WORD;
                         mem_access <= '0';
                         mem_write <= '0';
-                        hit <= '0';
+
+                        if( hit_possible = true ) then
+                            hit <= '1';
+                            --println( "INFO: Cache read hit." );
+                        end if;
 
                     else
                         
@@ -601,8 +604,6 @@ begin
                                  cur_data );
 
                     if cur_present = true then
-                        
-                        --println( "INFO: Cache write hit." );
 
                         store_word( cpu_sample_addr,
                                     cpu_sample_data,
@@ -616,7 +617,11 @@ begin
                         mem_data <= WEAK_WORD;
                         mem_access <= '0';
                         mem_write <= '0';
-                        hit <= '0';
+                       
+                        if( hit_possible = true ) then 
+                            hit <= '1';
+                            --println( "INFO: Cache write hit." );
+                        end if;
 
                     else
                         
@@ -648,6 +653,8 @@ begin
 
             end if cache_operation_branches;
 
+            hit_possible := false;
+
         else
 
             cache_sample_branches:
@@ -666,12 +673,14 @@ begin
 
                     cpu_sample_addr := cpu_addr;
                     cpu_read_operation := true;
+                    hit_possible := true;
 
-                else
+                elsif cpu_write = '1' then
 
                     cpu_sample_addr := cpu_addr;
                     cpu_sample_data := cpu_data;
                     cpu_write_operation := true;
+                    hit_possible := true;
 
                 end if;
 

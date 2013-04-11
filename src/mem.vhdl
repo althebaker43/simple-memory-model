@@ -11,7 +11,8 @@ use IEEE.math_real.all;
 --! @brief Memory entity
 entity mem is
 
-    generic( lw_range_min  : addr; lw_range_max  : addr;
+    generic( nop_range_min : addr; nop_range_max : addr;
+             lw_range_min  : addr; lw_range_max  : addr;
              sw_range_min  : addr; sw_range_max  : addr;
              add_range_min : addr; add_range_max : addr;
              beq_range_min : addr; beq_range_max : addr;
@@ -50,7 +51,7 @@ architecture mem_behav of mem is
     constant INSTR_RANGE_MIN : addr := X"00_00_00_00";
     constant INSTR_RANGE_MAX : addr := X"00_00_01_FC";
     constant DATA_RANGE_MIN : addr  := X"00_00_02_00";
-    constant DATA_RANGE_MAX : addr  := X"00_00_03_FF";
+    constant DATA_RANGE_MAX : addr  := X"00_00_03_FC";
 
     type storage is array ( 128 to 255 ) of word;
 
@@ -86,7 +87,12 @@ begin
             variable rt : word := NULL_WORD;
 
         begin
-            if ( ( addr_instr >= lw_range_min ) and
+
+            if ( ( addr_instr >= nop_range_min ) and
+                 ( addr_instr <= nop_range_max ) ) then
+                template := INSTR_NOP;
+
+            elsif ( ( addr_instr >= lw_range_min ) and
                  ( addr_instr <= lw_range_max ) ) then
                 template := LW_TEMPLATE;
 

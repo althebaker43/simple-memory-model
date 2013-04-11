@@ -20,10 +20,16 @@ begin
 
     test : process is 
 
-        variable input_addr : addr := NULL_ADDR;
+        variable input_word : word := NULL_WORD;
+        variable word_substring_value : natural := 0;
         variable exp_addr_mask_value : addr := NULL_ADDR;
         variable act_addr_mask_value : addr := NULL_ADDR;
-        variable addr_substring_value : natural := 0;
+
+        variable m_z_nat : natural := 4;
+        variable m_w_nat : natural := 3;
+        variable first_random_value : natural := 0;
+        variable second_random_value : natural := 0;
+        variable third_random_value : natural := 0;
 
     begin
 
@@ -71,25 +77,56 @@ begin
 
         println( "TEST:     End of get_addr_mask tests." );
 
-        println( "TEST:     Starting get_addr_substring_value tests." );
+        println( "TEST:     Starting get_word_substring_value tests." );
 
-        input_addr := X"00_00_04_00";
-        addr_substring_value := get_addr_substring_value( input_addr,
+        input_word := X"00_00_04_00";
+        word_substring_value := get_word_substring_value( input_word,
                                                           8,
                                                           8 );
-        assert( addr_substring_value = 4 )
-            report "ERROR: Bad get_addr_substring_value output."
+        assert( word_substring_value = 4 )
+            report "ERROR: Bad get_word_substring_value output."
             severity error;
 
-        input_addr := X"00_11_00_00";
-        addr_substring_value := get_addr_substring_value( input_addr,
+        input_word := X"00_11_00_00";
+        word_substring_value := get_word_substring_value( input_word,
                                                           16,
                                                           8 );
-        assert( addr_substring_value = 17 )
-            report "ERROR: Bad get_addr_substring_value output."
+        assert( word_substring_value = 17 )
+            report "ERROR: Bad get_word_substring_value output."
             severity error;
 
-        println( "TEST:     End of get_addr_substring_value tests." );
+        println( "TEST:     End of get_word_substring_value tests." );
+
+        --println( "TEST:     Starting get_random_nat tests." );
+
+        --get_random_nat( m_z_nat,
+        --                m_w_nat,
+        --                32,
+        --                first_random_value );
+        --assert( first_random_value <= 32 )
+        --    report "ERROR: Bad get_random_nat output."
+        --    severity error;
+
+        --get_random_nat( m_z_nat,
+        --                m_w_nat,
+        --                32,
+        --                second_random_value );
+        --assert( not( second_random_value = first_random_value ) and
+        --        ( second_random_value < 32 ) )
+        --    report "ERROR: Bad get_random_nat output."
+        --    severity error;
+
+        --get_random_nat( m_z_nat,
+        --                m_w_nat,
+        --                32,
+        --                third_random_value );
+        --assert( not( third_random_value = first_random_value ) and
+        --        not( third_random_value = second_random_value ) and
+        --        ( third_random_value < 32 ) )
+        --    report "ERROR: Bad get_random_nat output."
+        --    severity error;
+        --
+        --println( "TEST:     End of get_random_nat tests." );
         
         println( "TEST: End of misc tests." );
 

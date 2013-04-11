@@ -54,44 +54,27 @@ begin
 
     test : process is
 
-        procedure reset_cpu is
+        procedure reset_cpu( pc_val : in addr ) is
         begin
 
-            if clk = '0' then
-                wait on clk;
-                wait for CLK_PERIOD;
-            else
-                wait for ( CLK_PERIOD / 2 );
-            end if;
+            wait until clk = '1';
 
             reset <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             reset <= '0';
-            wait for ( CLK_PERIOD / 2 );
 
         end procedure reset_cpu;
 
 
         procedure test_reset is
         begin
-            
-            if clk = '0' then
-                wait on clk;
-                wait for CLK_PERIOD;
-            else
-                wait for ( CLK_PERIOD / 2 );
-            end if;
 
-            reset <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait until clk = '1';
 
-            reset <= '0';
-            wait for ( CLK_PERIOD / 2 );
-            
-            if access_instr = '0' then
-                wait on access_instr;
-            end if;
+            reset_cpu( NULL_ADDR );
+
+            wait until access_instr = '1';
 
             assert( addr_instr = NULL_ADDR )
                 report "ERROR: Bad CPU program counter output after reset."
@@ -100,7 +83,7 @@ begin
 
             instr <= INSTR_NOP;
             ready_instr <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             instr <= NULL_WORD;
             ready_instr <= '0';
@@ -118,23 +101,18 @@ begin
             ready_instr <= '0';
             data <= WEAK_WORD;
             ready_data <= '0';
+            wait until access_instr = '1';
 
-            if access_instr = '0' then
-                wait on access_instr;
-            end if;
             pc_orig_nat := to_integer( addr_instr );
             wait for CLK_PERIOD;
 
             instr <= INSTR_NOP;
             ready_instr <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             instr <= NULL_WORD;
             ready_instr <= '0';
-            
-            if access_instr = '0' then
-                wait on access_instr;
-            end if;
+            wait until access_instr = '1';
 
             assert( to_integer( addr_instr ) = pc_orig_nat + WORD_BYTE_SIZE )
                 report "ERROR: Bad sequential CPU program counter output."
@@ -143,12 +121,85 @@ begin
 
             instr <= INSTR_NOP;
             ready_instr <= '1';
-            wait for ( CLK_PERIOD / 2 );
+            wait for CLK_PERIOD;
 
             instr <= NULL_WORD;
             ready_instr <= '0';
 
         end procedure test_sequential;
+
+
+        procedure test_lw_instr is
+        begin
+
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+            data <= WEAK_WORD;
+            ready_data <= '0';
+            wait until access_instr = '1';
+
+            wait for CLK_PERIOD;
+
+            instr <= LW_TEMPLATE;
+            ready_instr <= '1';
+            wait for CLK_PERIOD;
+            
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+
+            wait on access_instr, access_data;
+
+            assert( access_data = '1' )
+                report "ERROR: No data access detected for LW instruction."
+                severity error;
+            assert( write_data = '0' )
+                report "ERROR: Incorrect data access type detected for LW instruction."
+                severity error;
+
+            data <= X"12_34_45_78";
+            ready_data <= '1';
+            wait for CLK_PERIOD;
+
+            data <= NULL_WORD;
+            ready_data <= '0';
+
+        end procedure test_lw_instr;
+
+
+        procedure test_sw_instr is
+        begin
+
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+            data <= WEAK_WORD;
+            ready_data <= '0';
+            wait until access_instr = '1';
+
+            wait for CLK_PERIOD;
+
+            instr <= SW_TEMPLATE;
+            ready_instr <= '1';
+            wait for CLK_PERIOD;
+            
+            instr <= NULL_WORD;
+            ready_instr <= '0';
+
+            wait on access_instr, access_data;
+
+            assert( access_data = '1' )
+                report "ERROR: No data access detected for SW instruction."
+                severity error;
+            assert( write_data = '1' )
+                report "ERROR: Incorrect data access type detected for SW instruction."
+                severity error;
+
+            ready_data <= '1';
+            wait for CLK_PERIOD;
+
+            ready_data <= '0';
+
+        end procedure test_sw_instr;
+
 
     begin
 
@@ -166,6 +217,8 @@ begin
 
         println( "TEST:     Starting reset tests." );
         test_reset;
+        wait for ( 10 * CLK_PERIOD );
+        test_reset;
         println( "TEST:     End of reset tests." );
 
         println( "TEST:     Starting sequential operation tests." );
@@ -173,6 +226,14 @@ begin
             test_sequential;
         end loop;
         println( "TEST:     End of sequential operation tests." );
+
+        println( "TEST:     Starting LW instruction tests." );
+        test_lw_instr;
+        println( "TEST:     End of LW instruction tests." );
+
+        println( "TEST:     Starting SW instruction tests." );
+        test_sw_instr;
+        println( "TEST:     End of SW instruction tests." );
         
         clk_en <= '0';
         wait for CLK_PERIOD;
