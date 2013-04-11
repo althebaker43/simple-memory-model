@@ -667,7 +667,7 @@ begin
                     cpu_sample_addr := cpu_addr;
                     cpu_read_operation := true;
 
-                else
+                elsif cpu_write = '1' then
 
                     cpu_sample_addr := cpu_addr;
                     cpu_sample_data := cpu_data;

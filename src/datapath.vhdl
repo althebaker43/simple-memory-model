@@ -75,6 +75,8 @@ architecture datapath_struct of datapath is
 
 begin
 
+    cpu_write_instr <= '0';
+
     clk_gen_ent : entity work.clk_gen( clk_gen_behav )
         port map( clk,
                   en );
