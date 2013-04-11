@@ -57,7 +57,7 @@ run_$(TARGET) : test_$(TARGET) | \
                 $(PLOT_DIR)
 	./$(BIN_DIR)/$(notdir $<) \
 		--assert-level=warning \
-		--stop-time=10us \
+		--stop-time=1ms \
 		--vcd=$(OUT_DIR)/$@.vcd
 
 run_misc : test_misc | \

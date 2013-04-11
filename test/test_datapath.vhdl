@@ -40,15 +40,12 @@ begin
 
         begin
 
-            if access_instr = '0' then
-                wait on access_instr;
-            end if;
+            wait until access_instr = '1';
+
             pc_orig_nat := to_integer( addr_instr );
-            wait for CLK_PERIOD;
-            
-            if access_instr = '0' then
-                wait on access_instr;
-            end if;
+            wait on access_instr;
+
+            wait until access_instr = '1';
 
             assert( to_integer( addr_instr ) = pc_orig_nat + WORD_BYTE_SIZE )
                 report "ERROR: Bad sequential CPU program counter output."
@@ -69,7 +66,7 @@ begin
         println( "TEST: Starting datapath tests." );
 
         println( "TEST:     Starting sequential operation tests." );
-        for test_sequential_count in 0 to 29 loop
+        for test_sequential_count in 0 to 10 loop
             test_sequential;
         end loop;
         println( "TEST:     End of sequential operation tests." );

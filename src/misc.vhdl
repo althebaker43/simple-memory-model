@@ -95,7 +95,9 @@ package body datapath_types is
     begin
 
         for word_indx in weak_word'range loop
-            weak_word( word_indx ) := 'H';
+
+            weak_word( word_indx ) := 'L';
+
         end loop;
 
         return weak_word;
