@@ -1,5 +1,5 @@
 --! @file test_cpu.vhdl
---! @brief File containing unit test for 32-bit CPU
+--! @brief File containing unit test for CPU
 
 use work.datapath_types.all;
 
@@ -10,11 +10,11 @@ use IEEE.numeric_std.all;
 library std;
 use std.textio.all;
 
---! @brief 32-bit CPU test-bench entity
+--! @brief CPU test-bench entity
 entity test_cpu is
 end entity test_cpu;
 
---!@brief 32-bit CPU test-bench architecture
+--!@brief CPU test-bench architecture
 architecture test_cpu_arch of test_cpu is
     
     signal clk : std_logic;

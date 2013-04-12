@@ -1,5 +1,5 @@
 --! @file cpu.vhdl
---! @brief File containing 32-bit CPU entity and behavioral architecture
+--! @brief File containing CPU entity and behavioral architecture
 
 use work.datapath_types.all;
 
@@ -7,54 +7,83 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
---! @brief 32-bit CPU entity
+--! @brief CPU entity
 entity cpu is
-    port( clk           : in std_logic;
+    port( clk           : in std_logic;     --! Input clock signal
 
-          reset         : in std_logic;
+          reset         : in std_logic;     --! Input CPU reset signal
 
-          addr_instr    : out addr;
-          instr         : in word;
-          access_instr  : out std_logic;
-          ready_instr   : in std_logic;
+          addr_instr    : out addr;         --! Ouput address of instruction to fetch
+          instr         : in word;          --! Input instruction being fetched
+          access_instr  : out std_logic;    --! Output instruction memory access indicator
+          ready_instr   : in std_logic;     --! Input instruction memory operation-complete indicator
 
-          addr_data     : out addr;
-          data          : inout word;
-          access_data   : out std_logic;
-          write_data    : out std_logic;
-          ready_data    : in std_logic
+          addr_data     : out addr;         --! Ouput address of data to load or store
+          data          : inout word;       --! Bi-directional data to load or store
+          access_data   : out std_logic;    --! Ouput data memory access indicator
+          write_data    : out std_logic;    --! Output write/read data memory indicator
+          ready_data    : in std_logic      --! Input data memory operation-complete indicator
         );
 
 end entity cpu;
 
---! @brief 32-bit CPU behavioral architecture
+--! @brief CPU behavioral architecture
 architecture cpu_behav of cpu is
 
+    --! Subtype for different CPU operation modes
     subtype cpu_mode is positive range 1 to 6;
     
+    --! Indicates that the CPU is in Instruction Fetch mode
     constant CPU_MODE_INSTR_FETCH   : cpu_mode := 1;
+    
+    --! Indicates that the CPU is in Instruction Decode mode
     constant CPU_MODE_INSTR_DECODE  : cpu_mode := 2;
+    
+    --! Indicates that the CPU is in Execution mode
     constant CPU_MODE_EXECUTE       : cpu_mode := 3;
+    
+    --! Indicates that the CPU is in Memory Modify mode
     constant CPU_MODE_MEMORY_MODIFY : cpu_mode := 4;
+    
+    --! Indicates that the CPU is in Write Back mode
     constant CPU_MODE_WRITE_BACK    : cpu_mode := 5;
+    
+    --! Indicates that the CPU is in Reset mode
     constant CPU_MODE_RESET         : cpu_mode := 6;
 
+    --! Subtype for different instruction-type modes
     subtype instr_mode is positive range 1 to 7;
 
+    --! Indicates that the CPU is currently processing a Load Word instruction
     constant INSTR_MODE_LW : instr_mode := 1;
+
+    --! Indicates that the CPU is currently processing a Store Word instruction
     constant INSTR_MODE_SW : instr_mode := 2;
+
+    --! Indicates that the CPU is currently processing an Add Words instruction
     constant INSTR_MODE_ADD : instr_mode := 3;
+
+    --! Indicates that the CPU is currently processing a Branch-if-Equal instruction
     constant INSTR_MODE_BEQ : instr_mode := 4;
+
+    --! Indicates that the CPU is currently processing a Branch-if-Not-Equal instruction
     constant INSTR_MODE_BNE : instr_mode := 5;
+
+    --! Indicates that the CPU is currently processing a Load Upper-Immediate instruction
     constant INSTR_MODE_LUI : instr_mode := 6;
+
+    --! Indicates that the CPU is currently processing a No-Operation instruction
     constant INSTR_MODE_NOP : instr_mode := 7;
 
+    --! Total number of general purpose data registers in CPU
     constant NUM_REGS : positive := 32;
 
+    --! Word array type to represent the data register file
     type reg_file is array( 0 to ( NUM_REGS - 1 ) ) of word;
 
 begin
 
+    --! Main operation process for CPU
     operate : process( clk ) is
 
         -- Input sampling variables

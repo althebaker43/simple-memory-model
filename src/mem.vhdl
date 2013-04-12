@@ -11,24 +11,32 @@ use IEEE.math_real.all;
 --! @brief Memory entity
 entity mem is
 
-    generic( nop_range_min : addr; nop_range_max : addr;
-             lw_range_min  : addr; lw_range_max  : addr;
-             sw_range_min  : addr; sw_range_max  : addr;
-             add_range_min : addr; add_range_max : addr;
-             beq_range_min : addr; beq_range_max : addr;
-             bne_range_min : addr; bne_range_max : addr;
-             lui_range_min : addr; lui_range_max : addr );
+    generic( nop_range_min : addr;  --! Minimum address from which to fetch NOP instructions
+             nop_range_max : addr;  --! Maximum address from which to fetch NOP instructions
+             lw_range_min  : addr;  --! Minimum address from which to fetch LW instructions
+             lw_range_max  : addr;  --! Maximum address from which to fetch LW instructions
+             sw_range_min  : addr;  --! Minimum address from which to fetch SW instructions
+             sw_range_max  : addr;  --! Maximum address from which to fetch SW instructions
+             add_range_min : addr;  --! Minimum address from which to fetch ADD instructions
+             add_range_max : addr;  --! Maximum address from which to fetch ADD instructions
+             beq_range_min : addr;  --! Minimum address from which to fetch BEQ instructions
+             beq_range_max : addr;  --! Maximum address from which to fetch BEQ instructions
+             bne_range_min : addr;  --! Minimum address from which to fetch BNE instructions
+             bne_range_max : addr;  --! Maximum address from which to fetch BNE instructions
+             lui_range_min : addr;  --! Minimum address from which to fetch LUI instructions
+             lui_range_max : addr   --! Maximum address from which to fetch LUI instructions
+         );
 
-    port( clk_in        : in std_logic;     --!< Clock signal
-          addr_data     : in addr;          --!< Input address for data access
-          data          : inout word;       --!< Input or output data word
-          access_data   : in std_logic;     --!< Input signal that triggers start of data access operation
-          write_data    : in std_logic;     --!< Input signal that indicates if the data operation is a read or write
-          ready_data    : out std_logic;    --!< Output signal that indicates when data is ready for read operations
-          addr_instr    : in addr;          --!< Input address for instruction access
-          instr         : out word;         --!< Output instruction word
-          access_instr  : in std_logic;     --!< Input signal that triggers start of instruction access operation
-          ready_instr   : out std_logic     --!< Output signal that indicates when instruction is ready for read operation
+    port( clk_in        : in std_logic;     --! Clock input signal
+          addr_data     : in addr;          --! Input address for data access
+          data          : inout word;       --! Input or output data word
+          access_data   : in std_logic;     --! Input signal that triggers start of data access operation
+          write_data    : in std_logic;     --! Input signal that indicates if the data operation is a read or write
+          ready_data    : out std_logic;    --! Output signal that indicates when data is ready for read operations
+          addr_instr    : in addr;          --! Input address for instruction access
+          instr         : out word;         --! Output instruction word
+          access_instr  : in std_logic;     --! Input signal that triggers start of instruction access operation
+          ready_instr   : out std_logic     --! Output signal that indicates when instruction is ready for read operation
         );
 
 end entity mem;
@@ -36,7 +44,6 @@ end entity mem;
 --! @brief Memory behavioral architecture
 --!
 --! @details
---!
 --! The memory is to have the following characteristics:
 --!
 --! @li Total size is 1024 bytes
@@ -48,20 +55,36 @@ end entity mem;
 --! @li Variable address ranges for different instruction types
 architecture mem_behav of mem is
 
+    --! Minimum address from which to fetch instructions
     constant INSTR_RANGE_MIN : addr := X"00_00_00_00";
+    
+    --! Maximum address from which to fetch instructions
     constant INSTR_RANGE_MAX : addr := X"00_00_01_FC";
+    
+    --! Minimum address from which to fetch data
     constant DATA_RANGE_MIN : addr  := X"00_00_02_00";
+    
+    --! Maximum address from which to fetch data
     constant DATA_RANGE_MAX : addr  := X"00_00_03_FC";
 
+    --! Main memory data storage type
     type storage is array ( 128 to 255 ) of word;
+  
+    --! Read access delay per word
+    constant READ_ACCESS_DELAY : natural := 5;
+    
+    --! Read additional delay per word
+    constant READ_ADDNL_DELAY : natural := 3;
 
-    constant READ_ACCESS_DELAY : natural := 5;  --!< Read access delay per word
-    constant READ_ADDNL_DELAY : natural := 3;   --!< Read additional delay per word
-    constant WRITE_ACCESS_DELAY : natural := 3; --!< Write access delay per word
-    constant WRITE_ADDNL_DELAY : natural := 4;  --!< Write additional delay per word
+    --! Write access delay per word
+    constant WRITE_ACCESS_DELAY : natural := 3;
+  
+    --! Write additional delay per word
+    constant WRITE_ADDNL_DELAY : natural := 4;
 
 begin
 
+    --! Main memory operation process
     operate : process( clk_in ) is
 
         variable read_instr_operation : boolean := false;
@@ -79,6 +102,9 @@ begin
 
         variable storage_var : storage;
 
+        --! @brief Returns an instruction based on the given address to fetch from
+        --!
+        --! @param addr_instr Address to fetch instruction from
         function get_random_instr( addr_instr : in addr ) return word is
 
             variable random_instr : word := NULL_WORD;
@@ -130,7 +156,8 @@ begin
 
             return random_instr;
 
-        end function;
+        end function get_random_instr;
+
 
     begin
 

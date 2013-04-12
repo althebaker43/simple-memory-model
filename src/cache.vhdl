@@ -14,26 +14,26 @@ use IEEE.math_real.all;
 --! @brief Cache entity
 entity cache is
 
-    generic( cache_size : positive;
-             min_addr   : addr;
-             max_addr   : addr
+    generic( cache_size : positive; --! Total size of cache in bytes
+             min_addr   : addr;     --! Minimum memory address covered by cache
+             max_addr   : addr      --! Maximum memory address covered by cache
         );
 
-    port( clk           : in std_logic;
+    port( clk           : in std_logic;     --! Input clock signal
     
-          cpu_addr      : in addr;
-          cpu_data      : inout word;
-          cpu_access    : in std_logic;
-          cpu_write     : in std_logic;
-          cpu_ready     : out std_logic;
+          cpu_addr      : in addr;          --! Input address from CPU
+          cpu_data      : inout word;       --! Bi-directional data to or from CPU
+          cpu_access    : in std_logic;     --! Access indicator from CPU
+          cpu_write     : in std_logic;     --! Write/read indicator from CPU
+          cpu_ready     : out std_logic;    --! Operation-complete indicator to CPU
     
-          mem_addr      : out addr;
-          mem_data      : inout word;
-          mem_access    : out std_logic;
-          mem_write     : out std_logic;
-          mem_ready     : in std_logic;
+          mem_addr      : out addr;         --! Output address to main memory
+          mem_data      : inout word;       --! Bi-directional data to or from main memory
+          mem_access    : out std_logic;    --! Access indicator to main memory
+          mem_write     : out std_logic;    --! Write/read indicator to main memory
+          mem_ready     : in std_logic;     --! Operation-complete indicator from main memory
 
-          hit           : out std_logic
+          hit           : out std_logic     --! Output hit indicator
       );
 
 end entity cache;
@@ -41,7 +41,6 @@ end entity cache;
 --! @brief Cache behavioral architecture
 --!
 --! @details
---!
 --! The cache is to have the following characteristics:
 --!
 --! @li Write scheme is write-back
@@ -60,6 +59,7 @@ architecture cache_behav of cache is
     --! Capacity of cache in words
     constant NUM_WORDS : positive := cache_size / WORD_BYTE_SIZE;
 
+    --! Size of one block in bytes
     constant BLOCK_BYTE_SIZE : positive := 32;
 
     --! Size of one block in words
@@ -95,6 +95,7 @@ architecture cache_behav of cache is
 
 begin
 
+    --! Main operation process of cache
     operate : process( clk ) is
 
         variable cpu_read_operation : boolean := false;
@@ -133,9 +134,7 @@ begin
         --!
         --! @param sample_addr Input address to look up
         --! @param block_indx Index of block within cache
-        --! @param word_indx Index of address within block
-        --! 
-        --! @todo Get rid of magic numbers
+        --! @param addr_indx Index of address within block
         procedure get_cache_location( sample_addr   : in addr;
                                       block_indx    : out natural;
                                       addr_indx     : out natural ) is
@@ -184,9 +183,7 @@ begin
         --!
         --! @param incl_addr Address to be included anywhere within block
         --! @param addr_indx Index of address
-        --! @param Resulting address
-        --! 
-        --! @todo Double-check math
+        --! @param sample_addr Resulting address
         procedure get_block_addr( incl_addr     : in addr;
                                   addr_indx     : in natural;
                                   sample_addr   : out addr ) is
@@ -196,12 +193,6 @@ begin
             variable sample_addr_nat : natural;
 
         begin
-            
-            --incl_addr_nat := to_integer( incl_addr );
-            --incl_addr_abs_nat := incl_addr_nat - MIN_ADDR_NAT;
-            --mem_block_indx := incl_addr_abs_nat / 32;
-            --start_addr_nat := ( mem_block_indx * 32 ) + MIN_ADDR_NAT;
-            --sample_addr_nat := start_addr_nat + ( addr_indx * 4 );
 
             start_addr_mask := not to_unsigned( BLOCK_BYTE_SIZE - 1, ADDR_SIZE );
             start_addr_nat := to_integer( start_addr_mask and incl_addr );
@@ -225,6 +216,8 @@ begin
         --!
         --! @param block_indx Index of block within cache to search within
         --! @param word_indx Index within block to retrieve data from
+        --! @param avbl Boolean value indicating if block is available or not
+        --! @param dirty Boolean value indicatin if block is dirty or not
         --! @param sample_addr Address at index
         --! @param sample_data Data at index
         procedure query_block_indx( block_indx  : in natural;
@@ -263,7 +256,9 @@ begin
         --! @brief Fetches data and block attributes corresponding to given
         --! address
         --!
-        --! @param sample_addr Input address to look up
+        --! @param sample_addr Input address to look up in cache
+        --! @param block_indx Index of block within cache that given address should appear in
+        --! @param addr_indx Index within selected block that given address should appear in
         --! @param present Indicates if address is present within cache
         --! @param avbl Indicates if corresponding block is available
         --! @param dirty Indicates if corresponding block is dirty
@@ -316,7 +311,7 @@ begin
         --! terminate the writing operation. mem_read_operation is then set to
         --! true to begin the reading operation into the same block.
         --!
-        --! @param sample_addr Input address to write corresponding block
+        --! @param block_indx Index of block within cache to write to memory
         procedure mem_write_block( block_indx : in natural ) is
 
             variable write_avbl : boolean;
@@ -357,6 +352,13 @@ begin
 
         --! @brief Initializes memory-reading operation
         --!
+        --! Each call to this procedure reads another word from memory. The
+        --! index of the word within the block currently being read is
+        --! tracked by the process-global variable mem_read_block_word_indx.
+        --! When the value of this variable becomes equal to the size of
+        --! a block in words, then mem_read_operation is set to false to
+        --! terminate the reading operation. 
+        --!
         --! @param sample_addr Input address to read corresponding block
         procedure mem_read_block( sample_addr : in addr ) is
 
@@ -394,8 +396,6 @@ begin
         --! @param sample_addr Address to store data at
         --! @param sample_data Data to store
         --! @param set_dirty Set dirty bit for block
-        --!
-        --! @todo Convert calculations to bitwise
         procedure store_word( sample_addr : in addr;
                               sample_data : in word;
                               set_dirty   : in boolean ) is

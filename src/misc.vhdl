@@ -8,6 +8,7 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
+--! Package containing common constants and functions
 package datapath_types is
 
     --! Cycle time of global clock
@@ -40,9 +41,16 @@ package datapath_types is
     --! The returned value is used to allow data to be read from inout ports
     function WEAK_WORD return word;
 
+    --! @brief Returns a bitmask for a given address
+    --!
+    --! @param addr_nat Natural value of address to calculate bitmask for
     function get_addr_mask( addr_nat : in natural ) return addr;
 
-    --! @brief Returns the value of a substring of an address
+    --! @brief Returns the value of a substring of a word
+    --!
+    --! @param sample_word Word to read substring from
+    --! @param start_indx Index of word to start reading from
+    --! @param num_bits Number of bits to read
     function get_word_substring_value( sample_word  : in word;
                                        start_indx   : in natural;
                                        num_bits     : in positive ) return natural;
@@ -82,12 +90,8 @@ package datapath_types is
     constant INSTR_SHMT_SIZE    : natural := 5;
     constant INSTR_FUNCT_SIZE   : natural := 6;
 
+    --! Prints a line of text to the console
     procedure println( print_string : in string );
-
-    procedure get_random_nat( m_z_nat : inout natural;
-                              m_w_nat : inout natural;
-                              max_value : in natural;
-                              random_value : out natural );
 
 end package datapath_types;
 
@@ -173,34 +177,6 @@ package body datapath_types is
     end println;
 
 
-    --! @brief Multiply-with-Carry Random Number Generator
-    --!
-    --! @author George Marsaglia
-    procedure get_random_nat( m_z_nat : inout natural;
-                              m_w_nat : inout natural;
-                              max_value : in natural;
-                              random_value : out natural ) is
-
-        variable m_w : word := to_signed( m_w_nat, WORD_SIZE );
-        variable m_z : word := to_signed( m_z_nat, WORD_SIZE );
-
-    begin
-
-        m_z := m_z srl 16;
-        m_z := m_z and to_signed( 65535, WORD_SIZE );
-        m_z := to_signed( ( to_integer( m_z ) * 36969 ), WORD_SIZE );
-        m_z_nat := to_integer( m_z );
-
-        m_w := m_w srl 16;
-        m_w := m_w and to_signed( 65535, WORD_SIZE );
-        m_w := to_signed( ( to_integer( m_w ) * 18000 ), WORD_SIZE );
-        m_w_nat := to_integer( m_w );
-
-        random_value := ( to_integer( m_z sll 16 ) + to_integer( m_w ) ) mod max_value;
-
-    end procedure get_random_nat;
-
-
 end package body;
 
 
@@ -210,11 +186,14 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
+--! Clock generator entity
 entity clk_gen is
-    port( clk : out std_logic;
-          en  : in std_logic );
+    port( clk : out std_logic;  --! Ouput clock waveform
+          en  : in std_logic    --! Enable input signal to turn clock on and off
+      );
 end entity clk_gen;
 
+--! Clock generator behavioral architecture
 architecture clk_gen_behav of clk_gen is 
 begin
 
