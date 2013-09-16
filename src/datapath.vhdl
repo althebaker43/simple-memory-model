@@ -217,7 +217,7 @@ begin
 end architecture datapath_struct;
 
 
---! @mainpage ECE 585 Memory Hierarcy Project
+--! @mainpage Simple Memory Hierarcy Project
 --!
 --! @section intro_sec Introduction
 --!
